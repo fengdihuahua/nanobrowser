@@ -173,6 +173,8 @@ Hub (扩展连接、客户端注册、租约、队列、取消、事件)
 | [新电脑 runbook](dsh-plugin-new-machine-runbook.md) | 新机器上 agent/用户各做什么 |
 | [旧交接笔记](dsh-bridge-notes.md) | 早期 MCP 桥、审批、坑的历史 |
 | [bootstrap 脚本](../scripts/dsh-nanobrowser-bootstrap.ps1) | 新机器装依赖 + 构建扩展 |
+| [给别人装](install-for-others.md) | 三条路径（release zip / 源码 / 纯 MCP）、验收脚本、排障 |
+| [商店文案](store-listing.md) | Chrome Web Store 条目：描述、权限理由、data-use |
 
 ## 10. 下一步建议
 
