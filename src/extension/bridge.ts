@@ -75,7 +75,10 @@ async function ensureSession(clientId: string, options: { shareVisible?: boolean
   const existing = sessions.get(clientId);
   if (existing) {
     const shared = existing.activeTabId;
-    if (shared !== null) await recorderFor(clientId, existing).ensure(shared).catch(() => undefined);
+    if (shared !== null)
+      await recorderFor(clientId, existing)
+        .ensure(shared)
+        .catch(() => undefined);
     return existing;
   }
   const controller = await controllerReady;
@@ -109,7 +112,10 @@ async function ensureSession(clientId: string, options: { shareVisible?: boolean
     const notice = await shareVisibleTab(created);
     if (notice) attachNotices.set(clientId, notice);
     const shared = created.activeTabId;
-    if (shared !== null) await recorderFor(clientId, created).ensure(shared).catch(() => undefined);
+    if (shared !== null)
+      await recorderFor(clientId, created)
+        .ensure(shared)
+        .catch(() => undefined);
   }
   return created;
 }
@@ -140,7 +146,8 @@ async function run(command: Command, signal: AbortSignal): Promise<unknown> {
         data.push({ tabId: tab.id, url: tab.url ?? '', title: tab.title ?? '', active: tab.active === true });
       }
       const lines = data.map(
-        tab => `${tab.active ? '*' : ' '} tab ${tab.tabId} · «${tab.title.replace(/[«»]/g, '')}» · «${tab.url.replace(/[«»]/g, '')}»`,
+        tab =>
+          `${tab.active ? '*' : ' '} tab ${tab.tabId} · «${tab.title.replace(/[«»]/g, '')}» · «${tab.url.replace(/[«»]/g, '')}»`,
       );
       return { ok: true, text: `tabs · ${data.length} in Chrome\n${lines.join('\n')}`, data: { tabs: data } };
     }

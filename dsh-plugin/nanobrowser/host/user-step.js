@@ -39,7 +39,12 @@ export function registerUserSteps(ctx, hub, settings) {
       type: 'object',
       properties: {
         text: { type: 'string', description: 'One or two sentences telling the user what to do in the page.' },
-        timeoutMs: { type: 'integer', minimum: 1000, maximum: 600000, description: 'How long to wait before giving up.' },
+        timeoutMs: {
+          type: 'integer',
+          minimum: 1000,
+          maximum: 600000,
+          description: 'How long to wait before giving up.',
+        },
       },
       required: ['text'],
       additionalProperties: false,
@@ -51,10 +56,7 @@ export function registerUserSteps(ctx, hub, settings) {
       }
       const text = String(args?.text ?? '').trim();
       if (!text) throw new Error('wait_for_user needs a short instruction for the user.');
-      const timeoutMs = Math.max(
-        1000,
-        Math.min(600_000, Number(args?.timeoutMs ?? settings.userStepTimeoutMs)),
-      );
+      const timeoutMs = Math.max(1000, Math.min(600_000, Number(args?.timeoutMs ?? settings.userStepTimeoutMs)));
       const id = randomUUID();
       const completed = await new Promise(resolve => {
         const timer = setTimeout(() => {
