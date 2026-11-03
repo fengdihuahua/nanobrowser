@@ -164,7 +164,12 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
         if (event?.type !== 'chat' || event.sessionId !== sessionRef.current) return;
         const chat = event.event;
         if (!chat) return;
-        if (chat.kind === 'user' || chat.kind === 'assistant' || chat.kind === 'tool-call' || chat.kind === 'tool-result') {
+        if (
+          chat.kind === 'user' ||
+          chat.kind === 'assistant' ||
+          chat.kind === 'tool-call' ||
+          chat.kind === 'tool-result'
+        ) {
           push(chat);
         } else if (chat.kind === 'status' && chat.status) {
           setRunning(chat.status === 'running');
@@ -253,7 +258,8 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
     <div className="fixed inset-0 z-50 flex flex-col bg-nb-bg text-nb-fg">
       <header className="flex items-center gap-2 border-b border-nb-border/60 px-3 py-2">
         <span className="text-sm font-semibold">DSH</span>
-        <span className={`text-[11px] ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+        <span
+          className={`text-[11px] ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
           {connected ? t('dsh.connected') : t('dsh.connecting')}
         </span>
         <span className="flex-1" />
@@ -315,7 +321,9 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
                   <li
                     key={`t-${message.callId ?? index}-${index}`}
                     className={`border-l-2 pl-2 font-mono text-[11px] leading-5 ${
-                      message.isError ? 'border-red-400 text-red-600 dark:text-red-300' : 'border-nb-border text-nb-muted'
+                      message.isError
+                        ? 'border-red-400 text-red-600 dark:text-red-300'
+                        : 'border-nb-border text-nb-muted'
                     }`}
                     title={message.args ?? undefined}>
                     {toolLine(message)}
