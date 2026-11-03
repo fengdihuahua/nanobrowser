@@ -1,0 +1,34 @@
+{
+  "name": "dev-harness",
+  "version": 1,
+  "description": "Open a page on the local dev server and wait until the app has rendered.",
+  "whenToUse": "When you are testing a project on localhost: open the page, confirm it rendered, then read console and network before clicking through.",
+  "origin": "http://localhost:5173",
+  "params": {
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "readyText": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "steps": [
+    {
+      "tool": "navigate",
+      "args": {
+        "url": "{{url}}"
+      },
+      "id": "s1"
+    },
+    {
+      "tool": "wait",
+      "args": {
+        "text": "{{readyText}}"
+      },
+      "id": "s2"
+    }
+  ],
+  "needsReview": false
+}

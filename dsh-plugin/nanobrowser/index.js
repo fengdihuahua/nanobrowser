@@ -44,10 +44,12 @@ function statusText(status) {
 }
 
 export function apply(ctx, config) {
-  const workspace = ctx.get?.('workingDirectory')?.defaultDirectory;
+  // Skills are the user's, not the workspace's: saved ones live in the profile, and the checkout's own are read from
+  // beside the plugin, so every workspace sees the same library.
+  const shippedSkills = join(import.meta.dirname, '..', '..', 'skills', 'browser');
   const settings = resolveConfig({
     ...(config ?? {}),
-    ...(config?.skillsDir === undefined && workspace ? { skillsDir: join(workspace, 'skills', 'browser') } : {}),
+    ...(config?.builtinSkillsDir === undefined ? { builtinSkillsDir: shippedSkills } : {}),
   });
   const hub = new Hub({
     port: settings.port,

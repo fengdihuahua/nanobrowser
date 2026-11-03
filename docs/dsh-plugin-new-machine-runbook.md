@@ -65,7 +65,8 @@ If the profile still has the old MCP row:
 plugin_manager set_plugin include:mcp-nanobrowser enabled:false
 ```
 
-If the row does not exist, skip it. The Host bundle's patch uses `<workspace>/skills/browser`; no path edit is needed.
+If the row does not exist, skip it. Skills need no path edit: the plugin reads the ones shipped beside it and saves new
+ones in `~/.dsh/skills/browser`.
 
 ## 5. Agent: verify
 
@@ -90,7 +91,7 @@ node -e "import('file:///D:/code/nanobrowser/fixtures/server.mjs').then(m => m.s
 | Port 8790 busy | Disable `include:mcp-nanobrowser`; find the old process with `netstat -ano | Select-String ':8790'`. |
 | Extension not connected | Build env must be `8790` / `dev-token`; the unpacked `dist/` must be reloaded; one normal page must be open. |
 | Left sidebar missing | The `nanobrowser-ui` bundle is not installed or not enabled. The Host bundle alone has no client page. |
-| Skills missing | `skills/browser/` was not copied, or `skillsDir` resolved to the DSH process cwd instead of the workspace. See the macOS note below. |
+| Skills missing | The checkout's `skills/browser` is not beside the plugin (it was copied elsewhere), or `skillsDir` points at an unwritable folder. Point `builtinSkillsDir` at the checkout's `skills/browser`. |
 | Build fails on SWC | Run outside the DSH sandbox in a normal terminal. On macOS, also use a Node binary that may load ad-hoc native addons; see the macOS note below. |
 | `wait_for_user` says the drawer is closed | The drawer must be expanded, not just the DSH button visible: the WebSocket connects only while it is open. |
 | Old DSH session missing | Copy `%USERPROFILE%\.dsh\sessions` and keep the same workspace path; otherwise start a new session. |
@@ -116,12 +117,12 @@ The steps above were written on Windows. On this Mac the same order works, with 
 
   Remove `.swc-cache` afterwards; it is not ignored by git.
 
-- Skills: `browser_skill_list` resolved `skillsDir` to `~/.dsh/profiles/desktop/skills/browser` (the DSH process cwd),
-  not `<workspace>/skills/browser`, so both sample skills were missing. A symlink fixes it without a restart:
+- Skills: this used to need a symlink, because `skillsDir` followed the DSH process cwd instead of the workspace. The
+  plugin now reads the checkout's `skills/browser` (beside the plugin) and saves in `~/.dsh/skills/browser`, so both
+  sample skills show up in any workspace. If an older setup made this symlink, remove it:
 
   ```bash
-  mkdir -p ~/.dsh/profiles/desktop/skills
-  ln -s /Users/liufengdi/Documents/Code/nanobrowser/skills/browser ~/.dsh/profiles/desktop/skills/browser
+  rm ~/.dsh/profiles/desktop/skills/browser
   ```
 
   The alternative is a `skillsDir` override for the `nanobrowser` entry in `~/.dsh/profiles/desktop/cordis.patch.yml`,
