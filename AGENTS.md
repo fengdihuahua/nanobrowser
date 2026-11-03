@@ -6,15 +6,27 @@ This file provides guidance to AI coding assistants (e.g., Claude Code, GitHub C
 
 This repository is the next version of Nanobrowser, an AI web automation Chrome extension, rebuilt from the ground up. It has two parts:
 
-- **The browser control layer**: a deterministic layer that observes a page, acts on it, and reports what happened. It is part of the extension, and its client is the extension's own agent, in-process.
-- **The extension** that end users run: the side panel, the one agent that works in it, model providers, and the features around them. It sits on top of the layer.
+- **The browser control layer**: a deterministic layer that observes a page, acts on it, and reports what happened. It is part of the extension; the agent that drives it runs outside, in DSH or in an MCP client.
+- **The extension** that end users run: the side panel, the approval cards and the features around them. It sits on top of the layer and carries no model of its own.
+
+## Direction (decided 2026-11-03)
+
+The extension is **hands and eyes, not a brain**. The agent that drives it lives outside it: DSH through the in-repo
+plugin (`dsh-plugin/nanobrowser/`, which embeds the Hub and the WebSocket chat behind the side panel), or any MCP client
+through the Hub's standard MCP adapter (`dsh-plugin/nanobrowser/mcp/adapter.mjs`). Both talk to one Hub, and the Hub is
+the only thing that talks to the extension.
+
+What follows from that and is being removed from the tree: the extension's own agent loop (`src/agent/`), its model
+layer (`src/llm/`), API keys and provider configuration (Settings → Providers), voice input through a model, and the
+migration of the old version's providers and keys. Until that removal lands, the DSH path is the product path and the
+rest is on its way out. The plan, the user stories and the status are in `docs/dsh-plugin-goal.md`.
 
 ## Scope
 
 - **Built and maintained:** the browser control layer, a simple Chrome extension for testing it by hand (the test panel), fixture pages, unit tests, and the automated checks.
-- **Built and maintained:** the extension. Its first release has a side panel per tab, one agent loop, model providers through the Vercel AI SDK, the permission modes, shortcuts, attachments (images and text), upload into pages, saved files, voice input through OpenAI's or Gemini's voice model, three UI languages (English, Simplified Chinese, Traditional Chinese), a glowing border on the pages the agent works on (with a switch in Settings), anonymous analytics (a daily count of users and usage counts, both on until the user turns them off) with no identifier, and a card that asks a user who uses it often to rate it in the store.
+- **Built and maintained:** the extension: a side panel per tab, the permission modes and their approval cards, attachments (images and text), upload into pages, saved files, three UI languages (English, Simplified Chinese, Traditional Chinese), a glowing border on the pages the agent works on (with a switch in Settings), anonymous analytics (a daily count of users and usage counts, both on until the user turns them off) with no identifier, and a card that asks a user who uses it often to rate it in the store. It has no model of its own: the model, the conversation and the loop belong to DSH or to the MCP client above it.
 - **Not in the first release:** for example skills the model loads, site notes, saved memory, the in-page Stop pill, PDF and Office parsing, the text tool-call parser, scheduled tasks. Do not add any of these unless asked.
-- **Not in scope:** an MCP bridge, browsers other than Chrome and Edge, a planner and navigator design, several cooperating agents.
+- **Not in scope:** a second brain in the extension (an agent loop, a model layer, keys, provider settings), a second MCP front end, browsers other than Chrome and Edge, a planner and navigator design, several cooperating agents.
 
 ## Fixed design constraints
 
@@ -22,7 +34,7 @@ These are settled and not open for redesign.
 
 For the layer:
 
-- **The layer is part of a Chrome extension, not a standalone tool.** It is not a runtime like agent-browser: no CLI, no daemon, no socket of its own, no launching or attaching to a browser, no remote CDP. Applications outside the extension will use it through an MCP bridge in future, and only that way. Do not add any other external entry point.
+- **The layer is part of a Chrome extension, not a standalone tool.** It is not a runtime like agent-browser: no CLI, no daemon, no socket of its own, no launching or attaching to a browser, no remote CDP. Applications outside the extension use it through the Hub (`dsh-plugin/nanobrowser/core/hub.js`) and its MCP adapter, and only that way. Do not add any other external entry point.
 - **`chrome.debugger` is the only way to reach CDP.** The product is a Chrome extension. Do not add CDP over WebSocket, not even for tests.
 - **Puppeteer is the frame manager.** It detects frames, including out-of-process iframes, and tracks their sessions and navigation. Do not build a parallel frame or session registry from CDP events.
 - **Elements are never found through Puppeteer.** No selectors, `ElementHandle` clicks or selector-based `evaluate`. Element commands are raw CDP commands sent to the session of the frame Puppeteer reports.
@@ -54,7 +66,7 @@ For the agent and the extension:
 - **Page content is data, never instructions.** Text from pages reaches the model inside marked page-content boundaries; keep it that way.
 - **One agent**, not the old planner and navigator: one loop per conversation.
 - **No model tiers.** Every model gets the same agent and the same tools (`screenshot` only for vision models). There are no tool switches in the first release.
-- **Nothing outside the extension can drive the layer or the agent.** There is no MCP for now.
+- **Outside clients drive the layer through one Hub**, reached by the DSH plugin and by the standard MCP adapter. There is no second front end, and no second agent inside the extension.
 - **The conversation is compacted automatically before the context window fills**, and every message the user sent is kept in full.
 - **Conversations cannot be imported** in the first release.
 
@@ -76,13 +88,15 @@ For the agent and the extension:
 
 The extension:
 
-- `src/agent/` - Loop, hooks, agent tools, prompts, context management, run records
-- `src/llm/` - Providers, model profiles, usage, retries, overflow detection
+- `src/agent/` - Loop, hooks, agent tools, prompts, context management, run records (being removed; see Direction)
+- `src/llm/` - Providers, model profiles, usage, retries, overflow detection (being removed; see Direction)
 - `src/store/` - IndexedDB schema and stores, settings, keys
 - `src/extension/` - Wiring in the worker: RunManager, PromptBroker, permissions, TabScope, downloads, notifications
 - `src/ui/` - Shared components, theme, the i18n runtime and the catalogues (`locales/`: English, Simplified and Traditional Chinese)
 - `src/side-panel/` - The chat UI
 - `src/options/` - The settings UI
+- `dsh-plugin/nanobrowser/` - The DSH plugin: Hub, tool surface, leases, approvals, the side-panel chat, skills; `dsh-plugin/nanobrowser-ui/` is the DSH left-sidebar page
+- `docs/` - The goal (`dsh-plugin-goal.md`), the spec (`dsh-plugin-spec.md`), the migration and runbook pages and the bridge notes; `skills/browser/` holds the Browser Skills
 
 **Import rules:**
 

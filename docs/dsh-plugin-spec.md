@@ -12,7 +12,8 @@
 - 不是 headless CI 自动化，不替代 Playwright。
 - 不是爬虫/批量操作农场。
 - 不是第二个 DSH UI：重活留给 DSH Web GUI。
-- 不修改 Nanobrowser 产品 agent 的定位；这套东西只存在于 `dsh-plugin/` 与桥接构建。
+- 扩展不自带 agent 和模型配置：模型只在 DSH 或 MCP 客户端一侧。`src/agent/`、`src/llm/`、Settings → Providers
+  与旧版 provider 迁移属于上一版产品形态，正在移出（见 [目标与方案](dsh-plugin-goal.md) 第 8 节）。
 - 不做多 agent 编排；DSH 的 subagent/workflow 仍由 DSH 负责。
 
 ## 3. 架构
@@ -155,4 +156,5 @@ Hub 是唯一和扩展说话的进程/实例。插件内嵌 Hub；MCP 适配器�
 - 页面内容始终按数据注入，带边界标记。
 - 技能 origin 限定；secret 不落盘；recipe 不执行任意代码。
 - 插件异常不能拖垮 DSH：所有异步入口 try/catch，队列有界。
-- 不删除 `bridge/mcp-bridge.mjs`，直到插件稳定运行；两者通过 Hub 共存。
+- 通用 MCP 只有一份：`dsh-plugin/nanobrowser/mcp/adapter.mjs`。早期的 `bridge/mcp-bridge.mjs` 直连扩展、自己占
+  8790，与“Hub 是唯一和扩展说话的实例”冲突，已退休。
