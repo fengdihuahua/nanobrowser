@@ -9,7 +9,7 @@ build and the login state are machine-local and are rebuilt on the new machine.
 |---|---|
 | `dsh-plugin/nanobrowser/` (Host: Hub, tools, leases, approvals, skills, chat) | DSH profile installation and bundle selection |
 | `dsh-plugin/nanobrowser-ui/` (DSH left-sidebar client) | `dist/` extension build |
-| `skills/browser/` (the skill library) | Chrome profile, cookies, site logins |
+| `skills/browser/` (the shipped skill library; the user's own live in `~/.dsh/skills/browser`) | Chrome profile, cookies, site logins |
 | `src/` bridge/panel changes (DSH drawer, approval and user-step cards) | DSH session history (unless copied) |
 | `docs/`, `fixtures/` | fixture server process |
 
@@ -58,7 +58,8 @@ Do not copy the whole `.dsh\profiles\desktop` directory: its plugin links and `n
 - Git.
 
 Unpack the repository to the same path, `D:\code\nanobrowser`, when possible; the DSH workspace, session history and
-skill paths then line up. A different path also works: the plugin uses the workspace's `skills/browser`.
+skill paths then line up. A different path also works: the plugin reads the skills shipped beside it and saves new
+ones in `~/.dsh/skills/browser`.
 
 From a bundle:
 
@@ -108,7 +109,7 @@ plugin_manager set_plugin include:mcp-nanobrowser enabled:false
 ```
 
 If the new profile has no `mcp-nanobrowser` row, skip that line. The Host bundle's patch no longer hardcodes a skill
-path: it uses `<workspace>/skills/browser`.
+path: it reads `<repo>/skills/browser` for the shipped skills and writes to `~/.dsh/skills/browser`.
 
 The UI bundle is a separate package on purpose. DSH caches package metadata until a restart, while a new package name
 is scanned into the client graph immediately, so the left-sidebar entry appears without restarting DSH.
@@ -133,8 +134,9 @@ is scanned into the client graph immediately, so the left-sidebar entry appears 
   (`8790`, `dev-token`), loaded unpacked, and at least one normal page must be open.
 - **Left sidebar entry missing**: install `dsh-plugin/nanobrowser-ui` (not just the Host bundle). The UI bundle must be
   enabled in the same profile.
-- **Skills missing**: `skills/browser/` must have been committed or copied. The skill directory is
-  `<workspace>/skills/browser` unless the plugin config overrides `skillsDir`.
+- **Skills missing**: the user's skills are in `~/.dsh/skills/browser`, and the shipped ones in the checkout's
+  `skills/browser`. A missing shipped skill means the plugin was installed from somewhere that has no `skills/` beside
+  it; set `builtinSkillsDir` in the bundle config to point at one.
 - **`pnpm build` fails with SWC**: run it in a normal terminal; the DSH sandbox cannot write the native cache or
   spawn the build subprocess.
 - **Old DSH session does not open**: copy `%USERPROFILE%\.dsh\sessions` to the new machine and keep the same workspace

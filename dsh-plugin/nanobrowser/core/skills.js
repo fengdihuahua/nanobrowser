@@ -130,48 +130,74 @@ export function parseFrontmatter(content) {
   return meta;
 }
 
+/**
+ * The directories a skill may live in, in the order they are searched: settings describe them, and a caller may pass
+ * one or an array. The user's own directory comes first, so a skill saved there shadows one shipped with the checkout.
+ */
+export function skillRoots(settings) {
+  return [settings?.skillsDir, settings?.builtinSkillsDir].map(value => String(value ?? '')).filter(Boolean);
+}
+
+function rootsOf(root) {
+  const list = (Array.isArray(root) ? root : [root]).map(value => String(value ?? '')).filter(Boolean);
+  return [...new Set(list)];
+}
+
 export async function readSkill(root, name) {
   const key = normalizeName(name);
-  const dir = join(root, key);
-  const recipe = JSON.parse(await readFile(join(dir, 'recipe.json'), 'utf8'));
-  const content = await readFile(join(dir, 'SKILL.md'), 'utf8');
-  const meta = parseFrontmatter(content);
-  return {
-    name: recipe.name ?? meta.name ?? key,
-    dir,
-    recipe,
-    content,
-    description: recipe.description ?? meta.description ?? '',
-    whenToUse: recipe.whenToUse ?? meta.whenToUse ?? '',
-  };
+  for (const base of rootsOf(root)) {
+    const dir = join(base, key);
+    try {
+      const recipe = JSON.parse(await readFile(join(dir, 'recipe.json'), 'utf8'));
+      const content = await readFile(join(dir, 'SKILL.md'), 'utf8');
+      const meta = parseFrontmatter(content);
+      return {
+        name: recipe.name ?? meta.name ?? key,
+        dir,
+        recipe,
+        content,
+        description: recipe.description ?? meta.description ?? '',
+        whenToUse: recipe.whenToUse ?? meta.whenToUse ?? '',
+      };
+    } catch {
+      // Not in this root, or half written; the next root is tried before giving up.
+    }
+  }
+  throw new Error(`No skill named ${key}; looked in ${rootsOf(root).join(', ') || 'no directory'}.`);
 }
 
 export async function skillExists(root, name) {
-  try {
-    const info = await stat(join(root, normalizeName(name), 'recipe.json'));
-    return info.isFile();
-  } catch {
-    return false;
+  for (const base of rootsOf(root)) {
+    try {
+      const info = await stat(join(base, normalizeName(name), 'recipe.json'));
+      if (info.isFile()) return true;
+    } catch {
+      // Not in this root; the next one is tried.
+    }
   }
+  return false;
 }
 
 export async function listSkills(root) {
-  let entries;
-  try {
-    entries = await readdir(root, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  const skills = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
+  const found = new Map();
+  for (const base of rootsOf(root)) {
+    let entries;
     try {
-      skills.push(await readSkill(root, entry.name));
+      entries = await readdir(base, { withFileTypes: true });
     } catch {
-      // A half-written or hand-edited directory is left out instead of breaking the catalog.
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || found.has(entry.name)) continue;
+      try {
+        const skill = await readSkill(base, entry.name);
+        if (!found.has(skill.name)) found.set(entry.name, skill);
+      } catch {
+        // A half-written or hand-edited directory is left out instead of breaking the catalog.
+      }
     }
   }
-  return skills.sort((a, b) => a.name.localeCompare(b.name));
+  return [...found.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function writeSkill(root, recipe, content = renderSkillMd(recipe)) {

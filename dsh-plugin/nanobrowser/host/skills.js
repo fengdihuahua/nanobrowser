@@ -5,7 +5,15 @@
 
 import { captureTurn } from '../core/capture.js';
 import { jsonSafe } from '../core/json.js';
-import { listSkills, normalizeName, readSkill, renderSkillMd, skillExists, writeSkill } from '../core/skills.js';
+import {
+  listSkills,
+  normalizeName,
+  readSkill,
+  renderSkillMd,
+  skillExists,
+  skillRoots,
+  writeSkill,
+} from '../core/skills.js';
 import { runSkill } from '../core/run.js';
 
 const RICH_OUTPUT = {
@@ -62,7 +70,7 @@ export function registerSkillProvider(ctx, settings) {
     return {
       name: 'nanobrowser',
       async list() {
-        const skills = await listSkills(settings.skillsDir);
+        const skills = await listSkills(skillRoots(settings));
         return skills.map((skill, index) => ({
           name: skill.name,
           description: skill.description,
@@ -80,7 +88,7 @@ export function registerSkillProvider(ctx, settings) {
       },
       async get(candidate) {
         try {
-          const skill = await readSkill(settings.skillsDir, candidate.name);
+          const skill = await readSkill(skillRoots(settings), candidate.name);
           return {
             name: skill.name,
             description: skill.description,
@@ -151,14 +159,14 @@ function saveTool(hub, settings) {
       const agent = exec.agent;
       if (!agent?.session) throw new Error('Saving a skill needs a live session.');
       const name = normalizeName(args.name);
-      const exists = await skillExists(settings.skillsDir, name);
+      const exists = await skillExists(skillRoots(settings), name);
       if (exists && args.overwrite !== true) {
         throw new Error(`Skill "${name}" already exists; pass overwrite: true to replace it.`);
       }
       let version = 1;
       if (exists) {
         try {
-          version = Number((await readSkill(settings.skillsDir, name)).recipe?.version ?? 1) + 1;
+          version = Number((await readSkill(skillRoots(settings), name)).recipe?.version ?? 1) + 1;
         } catch {
           version = 1;
         }
@@ -222,7 +230,7 @@ function listTool(settings) {
     parameters: { type: 'object', properties: {}, additionalProperties: false },
     output: RICH_OUTPUT,
     async execute() {
-      const skills = await listSkills(settings.skillsDir);
+      const skills = await listSkills(skillRoots(settings));
       if (skills.length === 0) return { ok: true, text: 'No browser skills are saved yet.', data: { skills: [] } };
       const lines = skills.map(skill => {
         const bits = [`- ${skill.name}`, `${skill.recipe?.steps?.length ?? 0} steps`];
@@ -232,7 +240,7 @@ function listTool(settings) {
       });
       return {
         ok: true,
-        text: `Browser skills in ${settings.skillsDir}:\n${lines.join('\n')}`,
+        text: `Browser skills (saved in ${settings.skillsDir}${settings.builtinSkillsDir ? `, shipped in ${settings.builtinSkillsDir}` : ''}):\n${lines.join('\n')}`,
         data: jsonSafe({
           skills: skills.map(skill => ({
             name: skill.name,
@@ -262,7 +270,7 @@ function showTool(settings) {
     },
     output: RICH_OUTPUT,
     async execute(args) {
-      const skill = await readSkill(settings.skillsDir, args.name);
+      const skill = await readSkill(skillRoots(settings), args.name);
       return {
         ok: true,
         text: `${skill.content}\nrecipe.json:\n${JSON.stringify(skill.recipe, null, 2)}`,
@@ -299,7 +307,7 @@ function runTool(hub, settings) {
     },
     output: RICH_OUTPUT,
     async execute(args, exec) {
-      const skill = await readSkill(settings.skillsDir, args.name);
+      const skill = await readSkill(skillRoots(settings), args.name);
       const clientId = exec.agent?.id ?? 'dsh:unscoped';
       hub.registerClient({ clientId, kind: 'dsh', sessionId: exec.agent?.id ?? null });
       return jsonSafe(

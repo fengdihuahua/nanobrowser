@@ -152,7 +152,7 @@ Hub (扩展连接、客户端注册、租约、队列、取消、事件)
 
 - **MCP 和插件都保留**：Hub 做共享层；MCP 是通用面，插件是 DSH 原生面。
 - **Host 与 Client 拆成两个包**：DSH 缓存包元数据到重启；新包名 `@local/nanobrowser-ui` 让左侧栏立即加载。
-- **技能目录**：`<workspace>/skills/browser`，不再硬编码绝对路径。
+- **技能目录**：用户保存的技能在 `~/.dsh/skills/browser`（任何工作区都可见，可写）；仓库自带的在 `<repo>/skills/browser`（只读，作为内置库）。`skillsDir` / `builtinSkillsDir` 可覆盖。
 - **旧 MCP 行**：`include:mcp-nanobrowser` 在旧 profile 里禁用，插件 Hub 占 8790。
 - **扩展 v2**：内部命令 `tabs-all` / `attach`，不走公开 MCP 工具表；插件 `attach` 自动选空闲标签或按 URL 新开。
 - **`wait_for_user`**：卡片在 DSH 抽屉，不在扩展的写审批卡里；秘密字段仍由扩展的 `USER_STEP` 处理。

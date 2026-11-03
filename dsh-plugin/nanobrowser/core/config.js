@@ -1,5 +1,6 @@
 // Plugin settings. The bundle patch supplies them; the defaults keep a local checkout usable without configuration.
 
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 function clamp(value, min, max) {
@@ -11,7 +12,11 @@ export function resolveConfig(config = {}) {
     port: Number(config.port ?? process.env.NANOBROWSER_BRIDGE_PORT ?? 8790),
     token: String(config.token ?? process.env.NANOBROWSER_BRIDGE_TOKEN ?? 'dev-token'),
     callTimeoutMs: Number(config.callTimeoutMs ?? 360_000),
-    skillsDir: String(config.skillsDir ?? join(process.cwd(), 'skills', 'browser')),
+    // Where a skill the agent saves goes. It belongs to the user, not to whichever folder DSH happens to run in, so
+    // every workspace sees the same skills.
+    skillsDir: String(config.skillsDir ?? join(homedir(), '.dsh', 'skills', 'browser')),
+    // Read-only skills that ship with the checkout. Empty means "none"; index.js fills in the repository's own folder.
+    builtinSkillsDir: String(config.builtinSkillsDir ?? ''),
     // The DSH tool names the plugin registers; the skill runner resolves through this prefix first.
     toolPrefix: String(config.toolPrefix ?? 'nanobrowser_'),
     // The MCP adapter's public names, so a skill recorded through MCP can still be replayed through either surface.

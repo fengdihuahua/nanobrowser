@@ -2,7 +2,7 @@
 // one action the user can take there: running a saved Browser Skill on the session that holds a tab lease.
 // Chat, approvals and the skill's own write steps stay in the Chrome side panel; this page never bypasses them.
 
-import { listSkills, readSkill } from '../core/skills.js';
+import { listSkills, readSkill, skillRoots } from '../core/skills.js';
 import { runSkill } from '../core/run.js';
 
 const MAX_BODY_BYTES = 16_384;
@@ -45,7 +45,7 @@ async function buildSummary(hub, settings) {
   } catch {
     sessions = [];
   }
-  const skills = (await listSkills(settings.skillsDir)).map(skill => ({
+  const skills = (await listSkills(skillRoots(settings))).map(skill => ({
     name: skill.name,
     description: String(skill.description ?? '').slice(0, 240),
     ...(skill.whenToUse ? { whenToUse: String(skill.whenToUse).slice(0, 240) } : {}),
@@ -130,7 +130,7 @@ export function registerSidebarRoute(ctx, hub, settings) {
         if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'method not allowed' });
         try {
           const body = await readBody(req);
-          const skill = await readSkill(settings.skillsDir, String(body.name ?? ''));
+          const skill = await readSkill(skillRoots(settings), String(body.name ?? ''));
           const clientId = leasedSession(hub, body.sessionId);
           if (!clientId) {
             return json(res, 409, { ok: false, error: 'No session holds a tab lease. Attach a tab in DSH first.' });
