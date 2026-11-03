@@ -26,6 +26,10 @@ export interface PanelState {
   /** Queued messages given back on Stop, for the composer. */
   returned: QueuedMessage[];
   prompts: OpenPrompt[];
+  /** The external (DSH) session working on a tab, and what it did last. */
+  browser: { active: boolean; tabId?: number; lastAction?: string };
+  /** Notes the external agent put in the panel, oldest first. */
+  notes: Array<{ text: string; at: string }>;
   error: string | null;
   history: ConversationSummary[];
   /** The conversation's tabs. */
@@ -47,6 +51,8 @@ export const INITIAL: PanelState = {
   queue: [],
   returned: [],
   prompts: [],
+  browser: { active: false },
+  notes: [],
   error: null,
   history: [],
   tabs: [],
@@ -121,6 +127,11 @@ export function reduce(state: PanelState, event: PanelEvent): PanelState {
       return { ...state, prompts: [...state.prompts.filter(p => p.id !== event.prompt.id), event.prompt] };
     case 'prompt_closed':
       return { ...state, prompts: state.prompts.filter(p => p.id !== event.id) };
+    case 'browser-session':
+      return { ...state, browser: { active: event.active, tabId: event.tabId, lastAction: event.lastAction } };
+    case 'browser-note':
+      // The panel shows the last few: an agent that talks a lot must not grow this without bound.
+      return { ...state, notes: [...state.notes, { text: event.text, at: event.at }].slice(-8) };
     case 'history':
       return { ...state, history: event.items };
     case 'tabs':

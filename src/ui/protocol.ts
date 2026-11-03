@@ -225,6 +225,10 @@ export type PanelEventBody =
   /** The conversation this panel now shows: its tab's, a new one, or one opened from Recent tasks. */
   | { type: 'bound'; conversationId: string | null }
   | { type: 'export'; conversationId: string; filename: string; markdown: string }
+  /** The external session is working on a tab: the panel says so, and what it did last. */
+  | { type: 'browser-session'; active: boolean; tabId?: number; lastAction?: string }
+  /** A note the external agent put in the panel: its own words, shown as plain text. */
+  | { type: 'browser-note'; text: string; at: string }
   | { type: 'error'; message: string };
 
 export type PanelEvent = PanelEventBody & { seq: number; conversationId: string | null };

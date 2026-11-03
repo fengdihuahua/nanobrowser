@@ -6,7 +6,7 @@ import en from '../locales/en.json';
 import zhCN from '../locales/zh_CN.json';
 import zhTW from '../locales/zh_TW.json';
 
-const SAME_IN_EVERY_LANGUAGE = new Set(['act.other', 'models.fix.ollama.linux']);
+const SAME_IN_EVERY_LANGUAGE = new Set(['act.other', 'models.fix.ollama.linux', 'dsh.title']);
 const catalogues: Record<string, Record<string, string>> = { zh_CN: zhCN, zh_TW: zhTW };
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort();
 

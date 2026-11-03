@@ -20,6 +20,8 @@ import { INITIAL, isActive, reduce } from './state';
 import { Transcript } from './Transcript';
 import { HistoryDrawer } from './History';
 import { Cards, containsCardNumber } from './Cards';
+import { BrowserBar } from './BrowserBar';
+import { DshChat } from './DshChat';
 import { NoticeCard } from './NoticeCard';
 import { WhatsNewCard, useWhatsNew } from './WhatsNewCard';
 import { RatingCard, ratingMovedOn, useRatingCard } from './RatingCard';
@@ -88,6 +90,7 @@ export function App() {
   const [draftMode, setDraftMode] = useState<PermissionMode | null>(null);
   const [draftPair, setDraftPair] = useState<LivePair | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [dshOpen, setDshOpen] = useState(false);
   const shortcuts = useShortcuts();
   const [autoNotice, setAutoNotice] = useState(false);
   /** A message held back because it looks like a card number. */
@@ -375,6 +378,16 @@ export function App() {
         {/* The title is for screen readers only; the header shows the mark and three buttons. */}
         <h1 className="sr-only">{conversation?.title || t('panel.newChat')}</h1>
         <span className="flex-1" />
+        {import.meta.env.WXT_BRIDGE ? (
+          <button
+            type="button"
+            title={t('dsh.title')}
+            aria-label={t('dsh.title')}
+            className="rounded-lg px-2 py-1 text-xs font-semibold text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent"
+            onClick={() => setDshOpen(true)}>
+            DSH
+          </button>
+        ) : null}
         <IconButton label={t('panel.newChat')} onClick={() => newChat(confirmNewChat)}>
           <NewChatIcon />
         </IconButton>
@@ -478,6 +491,7 @@ export function App() {
       <div role="status" aria-live="polite" className="sr-only">
         {t(`status.${state.status}`)}
       </div>
+      <BrowserBar browser={state.browser} notes={state.notes} />
       <Cards
         prompts={state.prompts}
         answer={(promptId, answer) => client?.send({ type: 'answer', promptId, answer })}
@@ -594,6 +608,7 @@ export function App() {
         onModel={next => choose({ model: next, reasoning })}
         onReasoning={next => model && choose({ model, reasoning: next })}
       />
+      <DshChat open={dshOpen} onClose={() => setDshOpen(false)} />
     </div>
   );
 }

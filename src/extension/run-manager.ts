@@ -49,7 +49,7 @@ import { PageBorder, injectBorder, listenForBorder } from './border';
 import { addPromptRoute, controllerReady } from './layer';
 import { Permissions } from './permissions';
 import { PromptBroker } from './prompt-broker';
-import { notifyFinished, notifyNeeds } from './notify';
+import { notifyFinished, notifyNeeds, clearNotification } from './notify';
 import { thumbnail } from './thumbnail';
 import { isNumberedCopy, saveText } from './downloads';
 import { checkSave } from '@src/agent/save-file';
@@ -64,6 +64,8 @@ import type { ToolCallRequest } from '@src/llm';
 import type { DebtEntry } from '@src/agent/completion';
 import { Journal } from './journal';
 import type { Sink } from './journal';
+import { installBrowserPrompts } from './browser-prompts';
+import type { BrowserPrompts } from './browser-prompts';
 import { livePair, ModelUnavailable, resolveModel } from './models';
 import { count, deleteKeepingChoices, noteActivity, observe, runEnded, runModel, runStarted } from './analytics';
 import { endOf } from './analytics-payload';
@@ -87,6 +89,8 @@ export class RunManager {
   readonly journal = new Journal();
   readonly permissions = new Permissions();
   readonly broker: PromptBroker;
+  /** The external session's cards, for tabs the DSH-side session drives; installed in the constructor. */
+  browserPrompts: BrowserPrompts | null = null;
   #runs = new Map<string, ActiveRun>();
   #sessions = new Map<string, Session>();
   /** The mode of a conversation with a run, read by the page header each turn (the user may change it). */
@@ -132,6 +136,14 @@ export class RunManager {
     });
     // The layer's prompts for tabs a conversation's session holds come to the broker.
     addPromptRoute({ owns: tabId => this.#conversationOfSessionTab(tabId) !== null, prompt: this.broker.userPrompt() });
+    // The external session's cards are installed behind the conversation route: a tab that DSH drives belongs to it.
+    this.browserPrompts = installBrowserPrompts({
+      emit: body => this.broadcast(body),
+      tabUrl: async tabId => (await chrome.tabs.get(tabId).catch(() => null))?.url ?? '',
+      remember: site => this.permissions.allow(site),
+      // The external session asks before a classified write unless the site is set to Allow: it has no Auto mode.
+      decideWrite: question => this.permissions.decide('ask', question),
+    });
     // Cancel on Chrome's debugger bar is Stop.
     chrome.debugger.onDetach.addListener((source, reason) => {
       if (reason !== 'canceled_by_user' || source.tabId === undefined) return;
@@ -308,6 +320,26 @@ export class RunManager {
   emit(conversationId: string, body: PanelEventBody): void {
     this.journal.emit(conversationId, body);
     observe(body);
+  }
+
+  /** An event for every open panel, whichever conversation it shows: the external session's cards have no journal. */
+  broadcast(body: PanelEventBody): void {
+    for (const connection of this.connections) this.journal.direct(connection.conversationId, connection.sink, body);
+    if (body.type === 'prompt_open') {
+      // A card the user cannot see is a card nobody answers: the badge always, the notification with no panel open.
+      if (this.connections.size === 0) void notifyNeeds(body.prompt, body.prompt.tabId).catch(() => undefined);
+      void this.#browserCardBadge();
+    } else if (body.type === 'prompt_closed') {
+      clearNotification(`needs-${body.id}`);
+      void this.#browserCardBadge();
+    }
+  }
+
+  /** The number of the external session's open cards, on the toolbar badge. */
+  async #browserCardBadge(): Promise<void> {
+    const count = this.browserPrompts?.prompts().length ?? 0;
+    await chrome.action.setBadgeText({ text: count ? String(count) : '' }).catch(() => undefined);
+    if (count) await chrome.action.setBadgeBackgroundColor({ color: '#d97706' }).catch(() => undefined);
   }
 
   /**
@@ -515,6 +547,8 @@ export class RunManager {
           'the user resumed the run; observe before acting.',
         );
       case 'answer':
+        // A card of the external session is answered by whoever has it open; anything else is a conversation's.
+        if (this.browserPrompts?.answer(command.promptId, command.answer)) return;
         await this.broker.answer(command.promptId, command.answer);
         return;
       case 'compact':
@@ -679,6 +713,9 @@ export class RunManager {
     }
     this.journal.direct(conversationId, connection.sink, { type: 'bound', conversationId });
     this.journal.direct(conversationId, connection.sink, await this.snapshot(conversationId));
+    // Cards of the external session are not in a conversation's journal, so a panel that just connected gets them here.
+    for (const prompt of this.browserPrompts?.prompts() ?? [])
+      this.journal.direct(conversationId, connection.sink, { type: 'prompt_open', prompt });
     this.journal.direct(conversationId, connection.sink, {
       type: 'tabs',
       tabs: await this.scope.scopeTabs(conversationId),

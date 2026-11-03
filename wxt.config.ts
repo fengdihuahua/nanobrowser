@@ -7,9 +7,11 @@ import autoprefixer from 'autoprefixer';
 import { permissionLists } from './src/ui/manifest-permissions';
 
 // The autorun build (fixtures/autorun.mjs) keeps the optional permissions required, unless it is asked to build with the
-// product's lists (WXT_PRODUCT_PERMISSIONS), to check the features without them.
+// product's lists (WXT_PRODUCT_PERMISSIONS), to check the features without them. A bridge build does the same: a card
+// that appears while no panel is open has to be able to raise a system notification.
 const autorun = !!process.env.WXT_AUTORUN_URL;
-const productPermissions = !autorun || !!process.env.WXT_PRODUCT_PERMISSIONS;
+const bridge = !!process.env.WXT_BRIDGE;
+const productPermissions = (!autorun && !bridge) || !!process.env.WXT_PRODUCT_PERMISSIONS;
 
 export default defineConfig({
   imports: false,

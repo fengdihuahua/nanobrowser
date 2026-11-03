@@ -198,7 +198,7 @@ export async function find(ctx: ToolContext, args: FindArgs): Promise<ToolOutcom
 export async function read(
   ctx: ToolContext,
   args: ReadArgs,
-): Promise<ToolOutcome<{ content: string; offset: number; remaining: number }>> {
+): Promise<ToolOutcome<{ content: string; offset: number; remaining: number; selection?: { text: string } }>> {
   const tab = ctx.tab();
   const observation = await recentObservation(ctx);
   let roots = observation.tree;
@@ -212,8 +212,34 @@ export async function read(
   const offset = args.offset ?? 0;
   const { text, remaining } = sliceContent(content, offset, args.maxChars ?? 20_000);
   const notices = remaining ? [`… ${remaining} more characters; continue with offset ${offset + text.length}.`] : [];
+  // What the user selected is part of the page they are looking at. Read-only: one fixed expression in the page's
+  // own world (an isolated world reports no selection), and nothing here changes the page.
+  const attachment = await ctx.attach();
+  const frames = await attachment.topology.frames();
+  let selection: { text: string } | undefined;
+  if (frames[0]) {
+    try {
+      const read = await attachment.cdp.send<{ result?: { value?: unknown } }>(
+        frames[0].sessionId,
+        'Runtime.evaluate',
+        {
+          expression: "(() => { const s = document.getSelection(); return s ? String(s.toString()) : ''; })()",
+          returnByValue: true,
+        },
+      );
+      const selected = typeof read.result?.value === 'string' ? read.result.value.replace(/\s+/g, ' ').trim() : '';
+      if (selected) selection = { text: selected.length > 2000 ? `${selected.slice(0, 1999)}…` : selected };
+    } catch {
+      // A frame that cannot be read simply has no selection to report.
+    }
+  }
   return {
-    data: { content: text, offset, remaining },
+    data: {
+      content: text,
+      offset,
+      remaining,
+      ...(selection?.text ? { selection } : {}),
+    },
     lines: [`read · tab ${tab.tabId} · ${quote(observation.title)} · ${text.length} characters`],
     pageText: text,
     notices,

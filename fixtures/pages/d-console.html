@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head
+    ><meta charset="utf-8" /><title>Console messages</title
+    ><link rel="stylesheet" href="/style.css"
+  /></head>
+  <body>
+    <h1>Console messages</h1>
+    <p class="note">Writes one message of each level, then an uncaught error.</p>
+    <p><button type="button" id="log-button">Log more</button></p>
+    <script>
+      console.log('fixture log at load');
+      console.warn('fixture warning at load');
+      console.log('fixture object at load', { rows: 3, ok: true });
+      document.getElementById('log-button').addEventListener('click', () => {
+        console.log('fixture log after click');
+        console.error('fixture error after click');
+        setTimeout(() => {
+          throw new Error('fixture uncaught error');
+        }, 0);
+      });
+      // A request that fails at the network layer, so a failed request shows next to the messages.
+      fetch('http://127.0.0.1:9/nothing-listens-here').catch(() => {});
+    </script>
+  </body>
+</html>

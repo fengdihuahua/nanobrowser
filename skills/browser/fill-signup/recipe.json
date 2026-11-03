@@ -1,0 +1,96 @@
+{
+  "name": "fill-signup",
+  "version": 1,
+  "description": "Fill the signup form on the Fill a form fixture page.",
+  "whenToUse": "When you need to fill the signup fixture form with a name, email, country and note, without submitting.",
+  "origin": "http://127.0.0.1:8787",
+  "params": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true
+    },
+    "country": {
+      "type": "string",
+      "required": true
+    },
+    "notes": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "steps": [
+    {
+      "tool": "navigate",
+      "args": {
+        "url": "http://127.0.0.1:8787/d-fill.html"
+      },
+      "id": "s1"
+    },
+    {
+      "tool": "set",
+      "args": {
+        "value": "{{name}}"
+      },
+      "target": {
+        "role": "textbox",
+        "name": "Full name"
+      },
+      "id": "s2"
+    },
+    {
+      "tool": "set",
+      "args": {
+        "value": "{{email}}"
+      },
+      "target": {
+        "role": "textbox",
+        "name": "Email"
+      },
+      "id": "s3"
+    },
+    {
+      "tool": "set",
+      "args": {
+        "value": "{{country}}"
+      },
+      "target": {
+        "role": "combobox",
+        "name": "Country"
+      },
+      "id": "s4"
+    },
+    {
+      "tool": "set",
+      "args": {
+        "value": "{{notes}}"
+      },
+      "target": {
+        "role": "textbox",
+        "name": "Notes"
+      },
+      "id": "s5"
+    },
+    {
+      "tool": "set",
+      "args": {
+        "value": true
+      },
+      "target": {
+        "role": "checkbox",
+        "name": "I agree"
+      },
+      "id": "s6"
+    }
+  ],
+  "assert": [],
+  "createdFrom": {
+    "sessionId": "session-8f11d1e6-9497-4478-998e-228d75465a65",
+    "turn": 6,
+    "at": 1793673466299
+  },
+  "needsReview": false
+}

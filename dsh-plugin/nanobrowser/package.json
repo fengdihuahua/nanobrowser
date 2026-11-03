@@ -1,0 +1,27 @@
+{
+  "name": "@local/nanobrowser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser control plane and Browser Skills for DSH.",
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "core",
+    "host",
+    "mcp",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

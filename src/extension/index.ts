@@ -3,6 +3,7 @@ import './panel';
 import { addFirstShortcuts } from './first-run';
 import { listenForPanels } from './panel-port';
 import { RunManager } from './run-manager';
+import { startExternalBridge } from './bridge';
 import { listenForSelections } from './selection';
 import { upgradeFromOldVersion } from './upgrade';
 import { analyticsReady, listenForSwitches, recordInstall } from './analytics';
@@ -52,3 +53,5 @@ void upgradeFromOldVersion().catch(error => console.error('[upgrade] move failed
 void analyticsReady();
 listenForSwitches();
 setUninstallPage();
+// A build with WXT_BRIDGE set lets a local bridge (DSH's MCP server) drive the user's real tab.
+startExternalBridge();

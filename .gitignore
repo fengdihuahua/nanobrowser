@@ -1,4 +1,7 @@
 node_modules
+.pnpm-store
+# SWC's native addon cache, kept in the workspace when the sandbox blocks ~/Library/Caches
+.swc-cache
 dist
 dist-zip
 .output
@@ -14,3 +17,5 @@ coverage
 .nanobrowser
 # Measurement runs write raw data here
 fixtures/.results
+# The packaged DSH app, extracted only to read its plugin and session APIs
+.dsh-app

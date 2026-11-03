@@ -20,8 +20,11 @@ export interface PromptRoute {
 const routes: PromptRoute[] = [];
 let fallback: UserPrompt | null = null;
 
-export function addPromptRoute(route: PromptRoute): void {
-  routes.push(route);
+export function addPromptRoute(route: PromptRoute, options: { first?: boolean } = {}): void {
+  // A route that goes first owns its tab in place of every route added before it, which is how the external session
+  // answers for a tab that also belongs to a conversation.
+  if (options.first) routes.unshift(route);
+  else routes.push(route);
 }
 
 /** The test panel's prompts, for tabs no product session holds. */

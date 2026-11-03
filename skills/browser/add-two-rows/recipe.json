@@ -1,0 +1,54 @@
+{
+  "name": "add-two-rows",
+  "version": 1,
+  "description": "Add two rows on the Effects fixture page and wait for Row 2.",
+  "whenToUse": "When you need a small visible browser replay on the Effects fixture page.",
+  "origin": "http://127.0.0.1:8787",
+  "params": {},
+  "steps": [
+    {
+      "tool": "navigate",
+      "args": {
+        "url": "http://127.0.0.1:8787/c-effects.html"
+      },
+      "id": "s1"
+    },
+    {
+      "tool": "click",
+      "args": {},
+      "target": {
+        "role": "button",
+        "name": "Add a row"
+      },
+      "id": "s2"
+    },
+    {
+      "tool": "click",
+      "args": {},
+      "target": {
+        "role": "button",
+        "name": "Add a row"
+      },
+      "id": "s3"
+    },
+    {
+      "tool": "wait",
+      "args": {
+        "text": "Row 2"
+      },
+      "id": "s4"
+    }
+  ],
+  "assert": [
+    {
+      "after": "s4",
+      "text": "Row 2"
+    }
+  ],
+  "createdFrom": {
+    "sessionId": "session-8f11d1e6-9497-4478-998e-228d75465a65",
+    "turn": 6,
+    "at": 1793672535220
+  },
+  "needsReview": false
+}
