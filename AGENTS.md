@@ -120,7 +120,7 @@ pnpm 10.34.7 is pinned in `package.json` (`packageManager`). If the global `pnpm
 
 CI (`.github/workflows/ci.yml`) runs `prettier --check`, `pnpm lint`, `pnpm type-check`, `pnpm test` and `pnpm build` on every push and pull request, on Ubuntu with the newest Node 24 and the pinned pnpm. Its actions are pinned to a commit, and its token can only read. The browser checks (`pnpm autorun`) are not in CI: they are run by hand, before a merge that touches what they cover.
 
-The extension's dependencies: `react-markdown` with `rehype-sanitize` and `remark-gfm`, and `@radix-ui/react-dialog`. The AI SDK packages left with the model layer; remove them from `package.json` when the lockfile is next touched. Any other dependency is asked for first. Settings → About lists them with their licences, and a unit test keeps that list equal to `package.json`.
+The extension's dependencies: `puppeteer-core`, `react` with `react-dom`, `react-markdown` with `rehype-sanitize` and `remark-gfm`, and `zod`. The AI SDK, `idb`, `fake-indexeddb` and `@radix-ui/react-dialog` left with the model layer and the old panel. Any other dependency is asked for first. Settings → About lists them with their licences, and a unit test keeps that list equal to `package.json`.
 
 ## Working rules
 
