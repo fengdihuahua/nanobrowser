@@ -61,6 +61,14 @@ Qoder / Claude Code / Cursor ──► MCP adapter ──┘        (chrome.debu
 4. **Or use another MCP client.** Point it at `node <repo>/dsh-plugin/nanobrowser/mcp/adapter.mjs`; it starts a Hub if
    none is running.
 
+5. **Check the wiring.**
+
+   ```bash
+   node fixtures/hub-smoke.mjs
+   ```
+
+   It registers as a client, opens the fixture page, snapshots it, reads console and network, and hands the tab back.
+
 The full sequence, including the ports and the token, is in [docs/dsh-plugin-migration.md](docs/dsh-plugin-migration.md)
 and [docs/dsh-plugin-new-machine-runbook.md](docs/dsh-plugin-new-machine-runbook.md).
 
@@ -89,6 +97,7 @@ says yes, and no agent call can turn that off.
 
 ## 📚 Docs
 
+- [Getting it working on someone else's machine](docs/install-for-others.md) — the short version, three paths
 - [Goal, users and status](docs/dsh-plugin-goal.md)
 - [Full specification](docs/dsh-plugin-spec.md)
 - [Moving the setup to another machine](docs/dsh-plugin-migration.md) · [New-machine runbook](docs/dsh-plugin-new-machine-runbook.md)
