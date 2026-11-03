@@ -1,6 +1,6 @@
 // Settings → Privacy: the policy link. The extension sends no analytics of its own: the Hub and DSH own usage.
 import { t } from '@src/ui/i18n';
-import { SettingsCard, SettingsRow } from './SettingsCard';
+import { SettingsCard } from './SettingsCard';
 
 export const PRIVACY_URL = 'https://github.com/nanobrowser/nanobrowser/blob/HEAD/PRIVACY.md';
 
