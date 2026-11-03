@@ -1,7 +1,7 @@
 // The panel protocol: one chrome.runtime Port per panel document, commands from the panel and events from the worker.
 // The panel never reads the stores itself; it draws what the worker sends.
-import type { ReasoningEffort } from '@src/llm/catalogue';
 import type {
+  ReasoningEffort,
   Conversation,
   LivePair,
   ModelRef,

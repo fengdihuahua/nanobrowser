@@ -1,12 +1,7 @@
-// IndexedDB schema and stores, settings and keys.
+// Settings and site rules in chrome.storage.local. The extension keeps no conversations, keys or model config of its
+// own: those belong to DSH or to the MCP client above the layer.
 export * from './types';
-export * from './conversations';
 export * from './settings';
 export { createStorage } from './storage';
 export type { Storage } from './storage';
-export { db, closeDb, DB_NAME, DB_VERSION } from './db';
-export * from './shortcuts';
-export * from './legacy';
-export * from './whats-new';
 export * from './analytics';
-export * from './rating';

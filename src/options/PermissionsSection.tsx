@@ -7,7 +7,6 @@ import { siteRulesStorage } from '@src/store/settings';
 import type { SiteRule, SiteRuleEntry } from '@src/store/settings';
 import { Button, Input, Notice, Select } from '@src/ui/components';
 import { BrowserFeaturesCard } from './BrowserFeaturesCard';
-import { MicrophoneCard } from './MicrophoneCard';
 import { SettingsCard } from './SettingsCard';
 import { useStorage } from '@src/ui/hooks';
 import { t } from '@src/ui/i18n';
@@ -54,7 +53,6 @@ export function PermissionsSection() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="sr-only">{t('settings.nav.permissions')}</h2>
-      <MicrophoneCard />
       <BrowserFeaturesCard />
       <SettingsCard title={t('perm.sites')} description={t('perm.sitesHint')} className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">

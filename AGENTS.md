@@ -16,15 +16,14 @@ plugin (`dsh-plugin/nanobrowser/`, which embeds the Hub and the WebSocket chat b
 through the Hub's standard MCP adapter (`dsh-plugin/nanobrowser/mcp/adapter.mjs`). Both talk to one Hub, and the Hub is
 the only thing that talks to the extension.
 
-What follows from that and is being removed from the tree: the extension's own agent loop (`src/agent/`), its model
-layer (`src/llm/`), API keys and provider configuration (Settings → Providers), voice input through a model, and the
-migration of the old version's providers and keys. Until that removal lands, the DSH path is the product path and the
-rest is on its way out. The plan, the user stories and the status are in `docs/dsh-plugin-goal.md`.
+What follows from that, and is now true of the tree: no agent loop, no model layer, no API keys, no provider settings,
+no voice model, no conversation store and no migration of the old version's data. The plan, the user stories and the
+status are in `docs/dsh-plugin-goal.md`.
 
 ## Scope
 
 - **Built and maintained:** the browser control layer, a simple Chrome extension for testing it by hand (the test panel), fixture pages, unit tests, and the automated checks.
-- **Built and maintained:** the extension: a side panel per tab, the permission modes and their approval cards, attachments (images and text), upload into pages, saved files, three UI languages (English, Simplified Chinese, Traditional Chinese), a glowing border on the pages the agent works on (with a switch in Settings), anonymous analytics (a daily count of users and usage counts, both on until the user turns them off) with no identifier, and a card that asks a user who uses it often to rate it in the store. It has no model of its own: the model, the conversation and the loop belong to DSH or to the MCP client above it.
+- **Built and maintained:** the extension: the browser control layer with its approval cards, the side panel that mirrors the live DSH session, the page border, site rules and three UI languages (English, Simplified Chinese, Traditional Chinese). It has no model of its own: the model, the conversation and the loop belong to DSH or to the MCP client above it.
 - **Not in the first release:** for example skills the model loads, site notes, saved memory, the in-page Stop pill, PDF and Office parsing, the text tool-call parser, scheduled tasks. Do not add any of these unless asked.
 - **Not in scope:** a second brain in the extension (an agent loop, a model layer, keys, provider settings), a second MCP front end, browsers other than Chrome and Edge, a planner and navigator design, several cooperating agents.
 
@@ -72,7 +71,7 @@ For the agent and the extension:
 
 ## Structure
 
-- `entrypoints/` - Thin WXT entrypoints: background, the product's side panel (`sidepanel/`), options (the settings page), `welcome/` (the first-run page), `permission/` (the microphone page), `offscreen/` (blob URLs for saved files), and the layer's test panel (`testpanel/`, developer-only, opened with the `open-test-panel` command)
+- `entrypoints/` - Thin WXT entrypoints: background, the side panel (`sidepanel/`), options (the settings page), and the layer's test panel (`testpanel/`, developer-only, opened with the `open-test-panel` command)
 - `src/browser-control/` - The layer
   - `protocol/` - Request and result types, zod schemas, error codes, tool catalogue
   - `core/` - Controller, sessions, refs, frames, perception, interaction, lifecycle
@@ -88,12 +87,10 @@ For the agent and the extension:
 
 The extension:
 
-- `src/agent/` - Loop, hooks, agent tools, prompts, context management, run records (being removed; see Direction)
-- `src/llm/` - Providers, model profiles, usage, retries, overflow detection (being removed; see Direction)
-- `src/store/` - IndexedDB schema and stores, settings, keys
-- `src/extension/` - Wiring in the worker: RunManager, PromptBroker, permissions, TabScope, downloads, notifications
+- `src/store/` - Settings and site rules in `chrome.storage.local`, with a cache and listeners
+- `src/extension/` - Wiring in the worker: the layer, the Hub client, the approval cards the layer's prompts open, the page border
 - `src/ui/` - Shared components, theme, the i18n runtime and the catalogues (`locales/`: English, Simplified and Traditional Chinese)
-- `src/side-panel/` - The chat UI
+- `src/side-panel/` - The side panel: the live DSH session and its approvals
 - `src/options/` - The settings UI
 - `dsh-plugin/nanobrowser/` - The DSH plugin: Hub, tool surface, leases, approvals, the side-panel chat, skills; `dsh-plugin/nanobrowser-ui/` is the DSH left-sidebar page
 - `docs/` - The goal (`dsh-plugin-goal.md`), the spec (`dsh-plugin-spec.md`), the migration and runbook pages and the bridge notes; `skills/browser/` holds the Browser Skills
@@ -101,9 +98,7 @@ The extension:
 **Import rules:**
 
 - Nothing under `src/browser-control/` imports from outside that folder, and other code imports the layer only through `src/browser-control/index.ts`.
-- `src/agent/` reaches Chrome APIs only through interfaces passed in by `src/extension/`.
-- `src/side-panel/` and `src/options/` never import `src/agent/` or `src/extension/`; they talk to the worker through one typed message protocol.
-- `src/llm/` knows nothing about browsers.
+- `src/side-panel/` and `src/options/` never import `src/extension/`; the panel talks to the Hub over its WebSocket.
 
 ## Toolchain
 
@@ -126,7 +121,7 @@ pnpm 10.34.7 is pinned in `package.json` (`packageManager`). If the global `pnpm
 
 CI (`.github/workflows/ci.yml`) runs `prettier --check`, `pnpm lint`, `pnpm type-check`, `pnpm test` and `pnpm build` on every push and pull request, on Ubuntu with the newest Node 24 and the pinned pnpm. Its actions are pinned to a commit, and its token can only read. The browser checks (`pnpm autorun`) and the checks that call real models (the evaluations, the model smoke run) are not in CI: they are run by hand, before a merge that touches what they cover and before a release.
 
-The extension's dependencies: `ai` with `@ai-sdk/anthropic`, `@ai-sdk/google` and `@ai-sdk/openai`, `idb`, `react-markdown` with `rehype-sanitize` and `remark-gfm`, and `@radix-ui/react-dialog`; `fake-indexeddb` is a development dependency for the store tests. Any other dependency is asked for first. Settings → About lists them with their licences, and a unit test keeps that list equal to `package.json`.
+The extension's dependencies: `react-markdown` with `rehype-sanitize` and `remark-gfm`, and `@radix-ui/react-dialog`. The AI SDK packages left with the model layer; remove them from `package.json` when the lockfile is next touched. Any other dependency is asked for first. Settings → About lists them with their licences, and a unit test keeps that list equal to `package.json`.
 
 ## Working rules
 

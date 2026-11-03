@@ -132,8 +132,8 @@ Hub (扩展连接、客户端注册、租约、队列、取消、事件)
 | 真实 `wait_for_user` | 单测过；还没在真实登录流程里点过“继续” |
 | 扩展 v2 测试 | `bridge.ts` 没有单测/假扩展测试 |
 | 权限/重连打磨 | Origin 校验、rate limit、断线重连状态还可以加强 |
-| 产品 agent 与模型层 | 扩展仍带 `src/agent/`、`src/llm/`、Providers 设置页和旧版 provider 迁移，面板默认仍是产品聊天。按 §8 移出中 |
-| 对外文案 | 根 `README.md`、`PRIVACY.md`、商店页面还写着“自带 API key、任选 provider、语音模型”；模型层删完之前它们仍然成立，删完必须重写 |
+| 对外文案 | 根 `README.md`、`PRIVACY.md`、商店页面还写着“自带 API key、任选 provider、语音模型”；模型层已经删了，文案必须重写 |
+| 自动检查 | `panel-*`、模型、eval、技能回放那批 autorun 检查随产品一起删了；面向 Hub 的新检查还没写 |
 
 ## 7. 阶段状态
 

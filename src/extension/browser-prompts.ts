@@ -11,7 +11,6 @@ import type {
   WriteDecision,
   WriteQuestion,
 } from '@src/browser-control';
-import { newId } from '@src/store/conversations';
 import type { OpenPrompt, PanelEventBody } from '@src/ui/protocol';
 
 interface Waiting {
@@ -50,7 +49,7 @@ export class BrowserPrompts {
     signal: AbortSignal,
   ): Promise<unknown | 'withdrawn'> {
     const prompt: OpenPrompt = {
-      id: newId(),
+      id: crypto.randomUUID(),
       kind,
       conversationId: 'browser',
       tabId,
