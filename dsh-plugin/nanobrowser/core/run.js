@@ -210,7 +210,13 @@ export async function runSkill(hub, clientId, settings, skill, options = {}) {
   const quiet = options.quiet === true;
 
   if (!hub.leaseOf(String(clientId))) {
-    return fail('Attach this session to a tab first with nanobrowser_attach.', skill, stepResults, assertionResults, started);
+    return fail(
+      'Attach this session to a tab first with nanobrowser_attach.',
+      skill,
+      stepResults,
+      assertionResults,
+      started,
+    );
   }
 
   if (recipe.origin) {
