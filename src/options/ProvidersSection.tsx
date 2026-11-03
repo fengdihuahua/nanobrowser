@@ -21,7 +21,19 @@ import { Button, Input, Notice, Select } from '@src/ui/components';
 import { SettingsCard } from './SettingsCard';
 import { VoiceCard } from './VoiceCard';
 import { listProblem, saveTest, testModel, wholeTestOnAdd } from './model-test';
-import { effortRow } from '@src/side-panel/ModelMenu';
+import type { ReasoningSupport } from '@src/llm/catalogue';
+
+// The effort row a model offers, shared with the panel's picker before the model layer leaves. Settings uses it to
+// explain which efforts a model accepts.
+const ALL: ReasoningEffort[] = ['none', 'low', 'medium', 'high'];
+function effortRow(
+  capability: ReasoningSupport | undefined,
+  value: ReasoningEffort,
+): { pills: ReasoningEffort[]; shown: ReasoningEffort } | null {
+  if (capability === 'none') return null;
+  const pills = capability === 'always' ? ALL.slice(1) : ALL;
+  return { pills, shown: pills.includes(value) ? value : 'low' };
+}
 import { useStorage } from '@src/ui/hooks';
 import { CheckIcon, ChevronIcon, CloseIcon, EyeIcon, EyeOffIcon, PlusIcon, TrashIcon } from '@src/ui/icons';
 import { t } from '@src/ui/i18n';
