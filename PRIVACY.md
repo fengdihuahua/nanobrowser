@@ -2,61 +2,58 @@
 
 ## Introduction
 
-[Nanobrowser](https://github.com/nanobrowser/nanobrowser) is an open-source AI web automation extension for Chrome and Edge. This Privacy Policy explains how it handles your data.
+[Nanobrowser](https://github.com/nanobrowser/nanobrowser) is an open-source browser-control extension for Chrome and
+Edge. It lets an agent you run elsewhere — DSH, or any MCP client — work the tabs you are already signed into. This
+policy explains what leaves your browser because of the extension, and what does not.
 
 ## Open source
 
-Nanobrowser is licensed under the Apache License 2.0. All source code is public in our [GitHub repository](https://github.com/nanobrowser/nanobrowser), so you can check everything this policy says.
+Nanobrowser is licensed under the Apache License 2.0. All the source code is in the
+[GitHub repository](https://github.com/nanobrowser/nanobrowser), so everything below can be checked against it.
 
-## What stays in your browser
+## Short version
 
-- Nanobrowser runs entirely in your browser. There is no Nanobrowser server, and no account.
-- Your conversations, attachments, saved shortcuts, custom instructions, site settings and other settings are stored locally in your browser.
-- Your logins and cookies never leave your browser through Nanobrowser.
-- The values of password, payment-card and one-time-code fields are hidden from the AI model.
+- There is **no Nanobrowser server and no account**. Nothing is sent to the Nanobrowser project.
+- The extension stores **only its settings** (interface language, theme, page border, site rules) in your browser.
+- It holds **no model and no API key**. The model is the one your DSH profile or your MCP client is configured with.
+- Page content reaches the model only when the agent asks to read a page, and only through that client.
 
-## What is sent to the Nanobrowser team
+## What the extension keeps locally
 
-Nanobrowser sends its developers only the small amounts of data below. Nothing sent has an ID. The daily count cannot be linked from one day to another, and the usage counts name no one. It never includes your pages, the sites you visit, your messages, your files, your keys or your settings' text.
+In `chrome.storage.local`, and nowhere else:
 
-- **A daily count of users** (on by default; turn it off in Settings → Data → **Anonymous daily count**). At most once a day, on a day you use Nanobrowser: the version, the browser (Chrome, Edge or other), the language of the screens, the week you installed Nanobrowser, whether it is the first time this week and this month, and whether you have set up a model or run a task that day.
-- **Usage counts** (on unless you turn them off, on the welcome page or in Settings → Data → **Help improve Nanobrowser**). At most once a day, with the version, the browser and the language of the screens, totals for a past day: how many tasks started, were resumed or continued, and how they ended, how long they were and how much text the model read, which tools ran and which errors happened (as fixed codes), which kind of provider, catalogue model, reasoning effort and mode were used, whether the model can see images, how often features such as attachments, shortcuts, voice input and Retry were used, how often a long conversation was shortened to fit, what you have set up (the kinds of providers, whether the default model runs on your computer, whether voice input and custom instructions are set, how many site rules of each kind you have), and how often confirmation cards were shown, approved or declined, and how often a step was handed to you. If you turned off the "Help improve Nanobrowser" switch of the earlier version, both start off.
+- the interface language, the theme, whether the page border glows, and the site rules you set (a site and Allow, Ask
+  or Block).
 
-This data goes to PostHog, a product analytics service, in the United States. Nanobrowser asks PostHog not to store your IP address or work out your location, and to create no profile of you. The data is kept for one year.
+There is no conversation history, no saved file, no attachment and no key in the extension. Closing it loses nothing
+that belongs to you; the conversation lives in DSH.
 
-When you remove Nanobrowser, Chrome opens a short optional Google Form that asks why. Nanobrowser fills in nothing in it; you can answer any question or none. Google asks you to sign in, so that each person answers once, but the form does not record who you are.
+## What leaves the browser
 
-## What is sent to the providers you choose
+The extension itself sends nothing anywhere. It answers the Hub running on your own machine (`127.0.0.1`), and the Hub
+is what passes a tool call in and a result back.
 
-To work, Nanobrowser sends data directly from your browser to the AI providers you set up, and only to them:
+When the agent reads a page, that page's text — and, if the model can see images, a screenshot of it — reaches the model
+your client is configured with. The extension does not choose that model and does not add anything to what it sends.
 
-- **Your model provider** (for example Anthropic, OpenAI, Google, OpenRouter, or a local server such as Ollama): your messages, your attachments, the content of the tabs the agent works in, and, for models that can see images, screenshots of those tabs.
-- **Your voice model provider** (OpenAI or Google), only if you turn on voice input: the audio of each recording. Recordings are not kept.
+- **Passwords, payment-card numbers and one-time codes** are masked wherever page content is returned to the model.
+- **Payments, access grants, secret input and page `prompt` dialogs** are your own step in every mode: the agent does not
+  type them.
+- **Submit, send, delete and upload** wait for a card in the side panel unless you set the mode or the site to allow them.
 
-How these providers handle your data is governed by their own privacy policies. If you use a local model, the data stays on your computer.
+How the model provider handles what it receives is governed by that provider's own policy, and by the configuration of
+the client you use. If your client runs a local model, the data stays on your computer.
 
-## API keys
+## What is never collected
 
-- You provide your own API keys.
-- Keys are stored locally in your browser, and are sent only to their own provider.
-- Keys are never included in exports and never written to logs.
+Nanobrowser has no analytics, no crash reporting, no usage counts and no identifier of any kind. Nothing is sent to the
+Nanobrowser project or to any third party by this extension.
 
-## Updating from an earlier version
+## Removing your data
 
-When Nanobrowser updates from its earlier version, it moves your providers and API keys, your default model, your saved prompts and your blocked sites into the new version, in your browser, and deletes the rest of the earlier version's data. Your earlier conversations are kept in your browser until you export or delete them in Settings → Data; nothing is sent anywhere.
-
-## Your control
-
-- Delete a conversation at any time, or delete all your data in Settings → Data. Your two choices about what is sent stay as you set them.
-- Turn off the daily count and the usage counts at any time in Settings → Data; what was counted and not yet sent is deleted at once.
-- Uninstall the extension to remove all its local data.
-
-## Changes to this policy
-
-We may update this policy. Changes are published in the GitHub repository.
+Removing the extension in `chrome://extensions` removes its local storage. Your DSH sessions and skills live in your DSH
+profile (`~/.dsh/...`) and are removed there.
 
 ## Contact
 
-Questions or concerns? Contact us at cws@felight.xyz.
-
-Last updated: October 13, 2026
+Open an issue in the [GitHub repository](https://github.com/nanobrowser/nanobrowser/issues).

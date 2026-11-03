@@ -1,17 +1,11 @@
 // The extension's Chrome permissions, for the build config, the worker, the pages and the checks.
 //
-// Four permissions are optional in the product: each adds an install warning the old Nanobrowser did not have, and
-// Chrome turns an extension off after an update that adds a warning until the user accepts it. Each feature that uses
-// one works with less until the user allows it with a click. The autorun build keeps the four required, so the checks
-// that save files or group tabs run without a click.
+// The product asks for nothing optional: the features that needed tab groups, notifications or saving files (the
+// agent's tab groups, its saved files, the rating card) went with the model. The autorun build keeps the same list, so
+// a check that needs one of them must add it here first.
 
-/** Tab group titles and colours, notifications, saving files, and Open on a saved file. */
-export const OPTIONAL_PERMISSIONS = [
-  'tabGroups',
-  'notifications',
-  'downloads',
-  'downloads.open',
-] as const satisfies readonly chrome.runtime.ManifestOptionalPermission[];
+/** Nothing is optional any more; the list stays so callers have one place to ask. */
+export const OPTIONAL_PERMISSIONS = [] as const satisfies readonly chrome.runtime.ManifestOptionalPermission[];
 
 export type OptionalPermission = (typeof OPTIONAL_PERMISSIONS)[number];
 
@@ -22,10 +16,7 @@ export const REQUIRED_PERMISSIONS = [
   'sidePanel',
   'storage',
   'webNavigation',
-  'unlimitedStorage',
   'alarms',
-  'offscreen',
-  'contextMenus',
   'scripting',
 ] as const satisfies readonly chrome.runtime.ManifestPermission[];
 
@@ -34,7 +25,7 @@ export interface PermissionLists {
   optional_permissions: chrome.runtime.ManifestOptionalPermission[];
 }
 
-/** The manifest's two lists: the product asks for the four when the user allows them, the autorun build at install. */
+/** The manifest's two lists: the autorun build installs with everything the product would ever ask for. */
 export function permissionLists(build: 'product' | 'autorun'): PermissionLists {
   return build === 'product'
     ? { permissions: [...REQUIRED_PERMISSIONS], optional_permissions: [...OPTIONAL_PERMISSIONS] }
