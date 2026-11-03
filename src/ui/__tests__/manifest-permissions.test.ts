@@ -1,34 +1,26 @@
 // The manifest's permission lists. The product must not require a permission that adds an install warning the old
-// Nanobrowser did not have, or Chrome turns it off on update until the user accepts; the autorun build requires them,
-// so its checks run without a click.
+// Nanobrowser did not have, or Chrome turns it off on update until the user accepts.
 import { describe, expect, it } from 'vitest';
-import { OPTIONAL_PERMISSIONS, permissionLists } from '../manifest-permissions';
-
-const FOUR = ['tabGroups', 'notifications', 'downloads', 'downloads.open'];
+import { permissionLists } from '../manifest-permissions';
 
 describe('manifest permission lists', () => {
-  it('the product makes the four optional and requires none of them', () => {
+  it('the product requires only what the layer, the panel and the Hub client use', () => {
     const product = permissionLists('product');
-    expect([...OPTIONAL_PERMISSIONS].sort()).toEqual([...FOUR].sort());
-    for (const p of FOUR) expect(product.permissions).not.toContain(p);
-    expect([...product.optional_permissions].sort()).toEqual([...FOUR].sort());
+    expect([...product.permissions].sort()).toEqual(
+      ['alarms', 'debugger', 'scripting', 'sidePanel', 'storage', 'tabs', 'webNavigation'].sort(),
+    );
+    expect(product.optional_permissions).toEqual([]);
   });
 
-  it('the product requires scripting, for the page border, and does not ask for activeTab', () => {
+  it('the product does not ask for the permissions the agent features needed', () => {
     const product = permissionLists('product');
-    expect(product.permissions).toContain('scripting');
-    expect(product.permissions).not.toContain('activeTab');
-    expect(product.optional_permissions).not.toContain('activeTab');
+    for (const p of ['tabGroups', 'notifications', 'downloads', 'downloads.open', 'offscreen', 'contextMenus'])
+      expect([...product.permissions, ...product.optional_permissions]).not.toContain(p);
+    expect([...product.permissions, ...product.optional_permissions]).not.toContain('activeTab');
   });
 
-  it('the autorun build requires the four and has nothing optional', () => {
-    const autorun = permissionLists('autorun');
-    for (const p of FOUR) expect(autorun.permissions).toContain(p);
-    expect(autorun.optional_permissions).toEqual([]);
-  });
-
-  it('both builds require the same other permissions', () => {
-    const others = (list: string[]) => list.filter(p => !FOUR.includes(p)).sort();
-    expect(others(permissionLists('product').permissions)).toEqual(others(permissionLists('autorun').permissions));
+  it('both builds ask for the same thing', () => {
+    expect(permissionLists('autorun').permissions).toEqual(permissionLists('product').permissions);
+    expect(permissionLists('autorun').optional_permissions).toEqual([]);
   });
 });

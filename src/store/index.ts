@@ -4,4 +4,3 @@ export * from './types';
 export * from './settings';
 export { createStorage } from './storage';
 export type { Storage } from './storage';
-export * from './analytics';
