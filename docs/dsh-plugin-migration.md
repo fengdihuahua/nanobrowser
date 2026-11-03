@@ -11,7 +11,7 @@ build and the login state are machine-local and are rebuilt on the new machine.
 | `dsh-plugin/nanobrowser-ui/` (DSH left-sidebar client) | `dist/` extension build |
 | `skills/browser/` (the skill library) | Chrome profile, cookies, site logins |
 | `src/` bridge/panel changes (DSH drawer, approval and user-step cards) | DSH session history (unless copied) |
-| `docs/`, `bridge/`, `fixtures/` | fixture server process |
+| `docs/`, `fixtures/` | fixture server process |
 
 Do not copy `node_modules/`, `dist/`, `.wxt/`, `.output/`, `.dsh-app/`, or the DSH profile's `node_modules/`; they are
 machine-specific and are regenerated.
