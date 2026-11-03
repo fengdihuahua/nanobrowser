@@ -9,13 +9,14 @@ const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '
 
 describe('DSH chat drawer', () => {
   it('renders its empty state, session picker and composer', () => {
-    const markup = renderToStaticMarkup(<DshChat open onClose={() => {}} />);
+    const markup = renderToStaticMarkup(<DshChat />);
     const plain = text(markup);
     expect(plain).toContain('DSH');
     expect(plain).toContain('No live DSH session.');
     expect(plain).toContain('No messages yet.');
     expect(markup).toContain('placeholder="Message DSH…"');
-    expect(plain).toContain('Send');
+    // Send is an icon now: its label is the accessible name, not visible text.
+    expect(markup).toContain('aria-label="Send"');
     expect(plain).toContain('Include current page');
   });
 

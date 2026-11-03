@@ -18,13 +18,13 @@ const PHASES: Record<Phase, MessageKey> = {
   waiting: 'activity.waiting',
 };
 
-const ICONS: Record<ToolRow['status'], string> = { running: '…', done: '✓', failed: '✗', skipped: '–', waiting: '!' };
-const TONES: Record<ToolRow['status'], string> = {
-  running: 'text-nb-link',
-  done: 'text-emerald-600 dark:text-emerald-400',
-  failed: 'text-red-600 dark:text-red-400',
-  skipped: 'text-nb-muted',
-  waiting: 'text-amber-600 dark:text-amber-400',
+/** A dot per row, not a tick: the list is a trace, and a tick four times in a row is noise. */
+const DOTS: Record<ToolRow['status'], string> = {
+  running: 'bg-nb-accent motion-safe:animate-pulse',
+  done: 'bg-emerald-500/70',
+  failed: 'bg-red-500',
+  skipped: 'bg-nb-border',
+  waiting: 'bg-amber-500',
 };
 const STATUS: Partial<Record<ToolRow['status'], Parameters<typeof t>[0]>> = {
   running: 'act.running',
@@ -85,16 +85,16 @@ export function Activity({ rows, phase, start, end }: { rows: ToolRow[]; phase?:
         <button
           type="button"
           aria-expanded={open}
-          className="flex items-center gap-1.5 self-start rounded-md py-0.5 pr-1 text-left text-nb-muted transition-colors hover:text-nb-fg"
+          className="-my-1 flex items-center gap-1.5 self-start rounded-md py-1 pr-1 text-left text-[13px] text-nb-muted transition-colors hover:text-nb-fg"
           onClick={() => setOpen(o => !o)}>
           {status}
-          <ChevronIcon size={14} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
+          <ChevronIcon size={13} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
         </button>
       ) : (
-        <div className="flex items-center gap-1.5 py-0.5 text-nb-muted">{status}</div>
+        <div className="flex items-center gap-1.5 py-0.5 text-[13px] text-nb-muted">{status}</div>
       )}
       {open && rows.length ? (
-        <ul className="flex flex-col gap-0.5 rounded-xl border border-nb-border bg-nb-bg px-2.5 py-1.5 text-xs shadow-sm">
+        <ul className="mt-1 flex flex-col text-[12.5px] leading-[1.5]">
           {rows.map(row => (
             <Row key={row.toolCallId} row={row} />
           ))}
@@ -114,15 +114,13 @@ function Row({ row }: { row: ToolRow }) {
       <button
         type="button"
         aria-expanded={open}
-        className="flex items-start gap-1.5 rounded-md px-1 py-0.5 text-left hover:bg-nb-surface"
+        className="group flex w-full items-start gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-nb-surface/70"
         onClick={() => setOpen(o => !o)}>
-        <span aria-hidden className={`w-3 shrink-0 text-center font-semibold ${TONES[row.status]}`}>
-          {ICONS[row.status]}
-        </span>
+        <span aria-hidden className={`mt-[6px] size-1.5 shrink-0 rounded-full ${DOTS[row.status]}`} />
         <span className="min-w-0 flex-1 break-words">
           {line.label}
           {[...(status ? [t(status)] : []), ...line.tags].map(tag => (
-            <span key={tag} className="ml-1 rounded-full bg-nb-surface px-1.5 text-[10px] text-nb-muted">
+            <span key={tag} className="ml-1.5 text-nb-muted/80">
               {tag}
             </span>
           ))}
@@ -132,11 +130,11 @@ function Row({ row }: { row: ToolRow }) {
         <img
           src={row.thumbnail}
           alt={t('act.thumbnail')}
-          className="ml-5 mt-0.5 h-16 w-auto self-start rounded-md border border-nb-border"
+          className="ml-5 mt-1 h-16 w-auto self-start rounded-md border border-nb-border"
         />
       ) : null}
       {line.details.map(d => (
-        <span key={d} className="ml-5 text-[11px] text-nb-muted">
+        <span key={d} className="ml-[18px] text-[11.5px] text-nb-muted">
           {d}
         </span>
       ))}

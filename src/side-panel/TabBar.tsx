@@ -9,15 +9,15 @@ import { CloseIcon } from '@src/ui/icons';
 export function TabBar({ tabs, onUnshare }: { tabs: ScopeTab[]; onUnshare: (tabId: number) => void }) {
   if (!tabs.length) return null;
   return (
-    <ul aria-label={t('tabs.bar')} data-role="tab-chips" className="flex flex-wrap gap-1 px-2 pb-1">
+    <ul aria-label={t('tabs.bar')} data-role="tab-chips" className="flex flex-wrap items-center gap-1 px-3 pb-1">
       {tabs.map(tab => (
         <li
           key={tab.tabId}
-          className="flex min-w-0 max-w-full items-center gap-1 rounded-full border border-nb-accent/15 bg-nb-surface px-2 py-0.5 text-xs">
+          className="flex min-w-0 max-w-full items-center gap-1.5 rounded-md bg-nb-surface/70 px-1.5 py-0.5 text-[11.5px] text-nb-muted">
           {tab.favIconUrl && /^https?:/.test(tab.favIconUrl) ? (
             <img src={tab.favIconUrl} alt="" className="size-3 shrink-0" referrerPolicy="no-referrer" />
           ) : null}
-          <span className="min-w-0 truncate" title={plain(tab.url)}>
+          <span className="min-w-0 truncate text-nb-fg/80" title={plain(tab.url)}>
             {plain(tab.title) || plain(tab.url)}
           </span>
           {tab.origin !== 'start' ? (

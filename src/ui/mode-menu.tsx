@@ -72,7 +72,7 @@ export function ModeMenu({
         data-label={label}
         data-value={mode}
         title={title}
-        className={`flex items-center gap-1 whitespace-nowrap rounded-full border font-medium ${large ? 'py-1.5 pl-3.5 pr-2.5 text-sm' : 'py-1 pl-2.5 pr-1.5 text-xs'} focus:outline-none focus-visible:ring-2 focus-visible:ring-nb-accent/40 ${mode === 'auto' ? 'border-nb-auto/60 bg-nb-auto/10 text-nb-auto' : 'border-nb-border bg-nb-bg text-nb-fg'}`}
+        className={`flex items-center gap-1 whitespace-nowrap rounded-full font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-nb-accent/40 ${large ? 'border py-1.5 pl-3.5 pr-2.5 text-sm' : 'py-1 pl-2.5 pr-1.5 text-xs'} ${mode === 'auto' ? 'bg-nb-auto/10 text-nb-auto' : large ? 'border-nb-border bg-nb-bg text-nb-fg' : 'text-nb-muted hover:bg-nb-surface hover:text-nb-fg'}`}
         onClick={() => setOpen(o => !o)}>
         {t(current.name)}
         <ChevronIcon size={large ? 14 : 12} className={`transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />

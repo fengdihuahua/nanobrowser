@@ -34,13 +34,15 @@ function Frame({
   children: ReactNode;
   onKeyDown?: (e: KeyboardEvent<HTMLElement>) => void;
 }) {
-  const border =
+  // A tint says what a card is for; a coloured edge bar does not, and a thick border makes every card shout. The dot
+  // beside the title carries the tone on its own.
+  const skin =
     tone === 'yours'
-      ? 'border-amber-400 dark:border-amber-600'
+      ? 'border-amber-300 bg-amber-50/80 dark:border-amber-700/70 dark:bg-amber-950/50'
       : tone === 'write'
-        ? 'border-nb-accent'
-        : 'border-nb-border';
-  const bar = tone === 'yours' ? 'bg-amber-400 dark:bg-amber-600' : tone === 'write' ? 'bg-nb-accent' : 'bg-nb-sky';
+        ? 'border-nb-accent/30 bg-nb-accent/[0.05] dark:bg-nb-accent/10'
+        : 'border-nb-border bg-nb-surface/60';
+  const bar = tone === 'yours' ? 'bg-amber-500' : tone === 'write' ? 'bg-nb-accent' : 'bg-nb-sky';
   return (
     // The card answers keys only while it has focus, so it can be focused.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
@@ -49,9 +51,9 @@ function Frame({
       tabIndex={0}
       aria-label={title}
       onKeyDown={onKeyDown}
-      className={`flex flex-col gap-2 rounded-2xl border-2 ${border} bg-nb-bg p-3.5 text-sm shadow-pop focus:outline-none focus:ring-2 focus:ring-nb-accent/40`}>
+      className={`flex flex-col gap-2 rounded-2xl border ${skin} p-3.5 text-[13.5px] leading-[1.5] focus:outline-none focus-visible:ring-2 focus-visible:ring-nb-accent/40`}>
       <div className="flex items-center gap-2">
-        <span aria-hidden className={`h-4 w-1 shrink-0 rounded-full ${bar}`} />
+        <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${bar}`} />
         <h2 className="font-semibold">{title}</h2>
       </div>
       {children}
@@ -67,10 +69,11 @@ function Buttons({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-2 pt-1">{children}</div>;
 }
 
-const btn = 'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors';
-const primary = `${btn} bg-nb-accent text-white shadow-sm hover:bg-nb-accent-strong`;
+const btn = 'rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors';
+const primary = `${btn} bg-nb-accent text-white hover:bg-nb-accent-strong`;
 const secondary = `${btn} border border-nb-border bg-nb-bg hover:bg-nb-surface`;
-const link = `${btn} text-nb-link underline`;
+/** The last button of a card is the way out to the page: it sits at the far edge, out of the way of the decision. */
+const link = `${btn} ml-auto px-1.5 font-normal text-nb-link hover:underline`;
 
 const WRITE_TITLES: Record<string, MessageKey> = {
   submit: 'card.write.title.submit',

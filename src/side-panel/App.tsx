@@ -34,7 +34,7 @@ import { installTestHook } from './test-hook';
 import type { SavedShortcut } from '@src/store/shortcuts';
 import { useShortcuts } from '@src/ui/shortcuts';
 import { AutoNotice } from '@src/ui/auto-notice';
-import { HistoryIcon, LogoMark, NewChatIcon, SettingsIcon } from '@src/ui/icons';
+import { ChevronIcon, HistoryIcon, LogoMark, NewChatIcon, SettingsIcon } from '@src/ui/icons';
 import { websiteUrl } from '@src/ui/links';
 
 const NO_PROVIDERS: ProviderConfig[] = [];
@@ -90,7 +90,6 @@ export function App() {
   const [draftMode, setDraftMode] = useState<PermissionMode | null>(null);
   const [draftPair, setDraftPair] = useState<LivePair | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [dshOpen, setDshOpen] = useState(false);
   const shortcuts = useShortcuts();
   const [autoNotice, setAutoNotice] = useState(false);
   /** A message held back because it looks like a card number. */
@@ -353,6 +352,29 @@ export function App() {
   };
 
   if (failure) return <p className="p-4 text-sm text-red-700 dark:text-red-300">{failure}</p>;
+  // The DSH build is hands and eyes: the panel *is* the live DSH session over the Hub, and Settings is its only door out.
+  if (import.meta.env.WXT_BRIDGE)
+    return (
+      <div className="flex h-full flex-col">
+        <header className="flex h-11 shrink-0 items-center gap-0.5 border-b border-nb-border/60 px-2">
+          <a
+            href={websiteUrl('/', 'side-panel')}
+            target="_blank"
+            rel="noreferrer"
+            title={t('panel.website')}
+            aria-label={t('panel.website')}
+            className="mr-1 flex shrink-0 rounded-md p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent">
+            <LogoMark size={18} />
+          </a>
+          <h1 className="sr-only">{t('dsh.title')}</h1>
+          <span className="flex-1" />
+          <IconButton label={t('panel.settings')} onClick={() => void chrome.runtime.openOptionsPage()}>
+            <SettingsIcon />
+          </IconButton>
+        </header>
+        <DshChat />
+      </div>
+    );
   // The quick start above the composer: at most three pinned shortcuts, or the fixed starters.
   const pinned = shortcuts.filter(s => s.pinned).slice(0, 3);
   const starters = pinned.length
@@ -364,7 +386,7 @@ export function App() {
     <div className={`flex h-full flex-col${empty && state.loaded ? ' nb-start' : ''}`}>
       {/* The header has no field of its own, so it is part of the panel; a line under it only above a conversation. */}
       <header
-        className={`flex items-center gap-1 border-b px-2 py-1.5 ${empty && state.loaded ? 'border-transparent' : 'border-nb-border/60'}`}>
+        className={`flex h-11 items-center gap-0.5 border-b px-2 ${empty && state.loaded ? 'border-transparent' : 'border-nb-border/60'}`}>
         {/* The mark opens the website in a new tab. */}
         <a
           href={websiteUrl('/', 'side-panel')}
@@ -372,22 +394,12 @@ export function App() {
           rel="noreferrer"
           title={t('panel.website')}
           aria-label={t('panel.website')}
-          className="ml-1 flex shrink-0 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent">
-          <LogoMark size={20} />
+          className="mr-1 flex shrink-0 rounded-md p-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent">
+          <LogoMark size={18} />
         </a>
         {/* The title is for screen readers only; the header shows the mark and three buttons. */}
         <h1 className="sr-only">{conversation?.title || t('panel.newChat')}</h1>
         <span className="flex-1" />
-        {import.meta.env.WXT_BRIDGE ? (
-          <button
-            type="button"
-            title={t('dsh.title')}
-            aria-label={t('dsh.title')}
-            className="rounded-lg px-2 py-1 text-xs font-semibold text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent"
-            onClick={() => setDshOpen(true)}>
-            DSH
-          </button>
-        ) : null}
         <IconButton label={t('panel.newChat')} onClick={() => newChat(confirmNewChat)}>
           <NewChatIcon />
         </IconButton>
@@ -437,10 +449,14 @@ export function App() {
         />
       ) : (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-            {state.loaded ? <LogoMark size={40} /> : null}
+          {/* The greeting sits in the space above the composer, centered in it, and the quick start lands right above
+              the composer as quiet rows: a short question and three ways to start, no floating pills. */}
+          <div className="flex flex-1 flex-col items-center justify-end px-6 pb-8 text-center">
             {state.loaded ? (
-              <p className="max-w-xs text-[24px] font-normal leading-tight text-nb-fg">{t('panel.empty')}</p>
+              <>
+                <LogoMark size={30} />
+                <p className="nb-display mt-4 max-w-[15ch] text-[26px] leading-[1.25] text-nb-fg">{t('panel.empty')}</p>
+              </>
             ) : (
               <p className="text-sm text-nb-muted">{t('panel.loading')}</p>
             )}
@@ -448,16 +464,20 @@ export function App() {
           {/* With no model, the no-model card above the composer takes the quick start's place. */}
           {/* The quick start stays hidden while the What's new card shows. */}
           {state.loaded && models.length && !whatsNew ? (
-            <ul className="flex flex-col items-start gap-2 px-3 pb-2" aria-label={t('panel.starters')}>
+            <ul className="mb-1 flex flex-col gap-0.5 px-2" aria-label={t('panel.starters')}>
               {starters.map(s => (
-                <li key={s.key} className="max-w-full">
+                <li key={s.key}>
                   <button
                     type="button"
                     title={s.title}
                     disabled={!model}
-                    className="max-w-full truncate rounded-full border border-nb-border/60 bg-nb-bg px-4 py-2 text-[15px] text-nb-fg shadow-sm transition-colors hover:bg-nb-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent disabled:opacity-40"
+                    className="group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13.5px] text-nb-fg/90 transition-colors hover:bg-nb-surface hover:text-nb-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent disabled:opacity-40"
                     onClick={s.run}>
-                    {s.label}
+                    <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                    <ChevronIcon
+                      size={14}
+                      className="shrink-0 text-nb-muted/50 transition-colors group-hover:text-nb-muted"
+                    />
                   </button>
                 </li>
               ))}
@@ -608,7 +628,6 @@ export function App() {
         onModel={next => choose({ model: next, reasoning })}
         onReasoning={next => model && choose({ model, reasoning: next })}
       />
-      <DshChat open={dshOpen} onClose={() => setDshOpen(false)} />
     </div>
   );
 }
@@ -633,7 +652,7 @@ function IconButton({
       title={title ?? label}
       aria-label={label}
       disabled={disabled}
-      className="flex size-7 items-center justify-center rounded-lg text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-nb-muted"
+      className="flex size-8 items-center justify-center rounded-lg text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-nb-muted"
       onClick={onClick}>
       {children}
     </button>
