@@ -4,8 +4,9 @@
 
 /*
  * The brand (the Nanobrowser brandbook). Primary #0073DC and sky #19C2FF on a pale sky canvas in light; a deep navy
- * canvas in dark. Text colours meet WCAG AA on the canvas, the surfaces and the cards. Fonts are the system's: sans for
- * the interface, and the system's serif for answers, as in Claude in Chrome's side panel.
+ * canvas in dark. Text colours meet WCAG AA on the canvas, the surfaces and the cards. Fonts are the system's, in two
+ * voices: the serif speaks in headlines and the greeting, the sans everything the user reads or acts on, including
+ * answers — a serif body in a Chinese panel falls back to Songti and reads like a document, not a conversation.
  */
 :root {
   --nb-canvas: 250 251 253;
@@ -75,14 +76,13 @@ h3 {
   background: linear-gradient(140deg, #0b1730 0%, #0c1626 40%, #0a1220 70%, #0f1c34 100%) fixed;
 }
 
-/* The panel's new-chat page, after Gemini in Chrome's: the brand background's strongest blue band, turned upside down
-   and shrunk to 16 by 8 pixels so it spreads into a soft field, fills the lower 65% and fades in from the middle, under
-   the quick start and the composer; a blue glow at the bottom of the navy field in dark. */
+/* The panel's new-chat page: a pale sky field with the brand's blue gathering at the bottom, under the quick start and
+   the composer, built from two soft radial washes so it has no seam where an image would end; the same glow at the
+   bottom of the navy field in dark. */
 .nb-start {
   background:
-    linear-gradient(to bottom, #f6fcff 35%, rgb(246 252 255 / 0) 75%),
-    url('/brand/panel-wave.png') center bottom / 100% 65% no-repeat,
-    #f6fcff;
+    radial-gradient(120% 55% at 50% 100%, rgb(25 194 255 / 0.16), transparent 72%),
+    radial-gradient(90% 45% at 15% 100%, rgb(0 115 220 / 0.1), transparent 70%), #fbfdff;
 }
 .dark .nb-start {
   background: radial-gradient(120% 45% at 30% 100%, rgb(0 115 220 / 0.25), transparent 70%), rgb(var(--nb-canvas));
@@ -111,21 +111,24 @@ h3 {
   }
 }
 
-/* An answer in the transcript: the system's serif at reading size. Code stays monospaced. */
+/* An answer in the transcript: the interface's sans at reading size and open leading, so it reads as the panel's own
+   voice rather than as a document. Code stays monospaced. */
 .nb-answer {
-  @apply font-serif text-[15px] leading-[1.45];
+  @apply text-[15px] leading-[1.65];
+}
+
+/* A headline set in the system's serif: the greeting on a new conversation, the settings title. */
+.nb-display {
+  @apply font-serif tracking-[-0.01em];
 }
 
 .nb-markdown {
-  @apply break-words leading-relaxed;
+  @apply break-words leading-[inherit];
 }
 .nb-answer .nb-markdown {
   @apply leading-[inherit];
 }
 .nb-markdown > * + * {
-  @apply mt-2;
-}
-.nb-answer .nb-markdown > * + * {
   @apply mt-2.5;
 }
 .nb-markdown h1,

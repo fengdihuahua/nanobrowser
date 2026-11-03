@@ -404,7 +404,7 @@ export function Composer({
   };
   return (
     <div
-      className="flex flex-col gap-2 px-3 pb-3 pt-1"
+      className="flex flex-col gap-2 px-3 pb-2.5 pt-1"
       onDragOver={e => {
         if (canAttach && e.dataTransfer.types.includes('Files')) e.preventDefault();
       }}
@@ -466,7 +466,7 @@ export function Composer({
         />
       ) : null}
       {slash ? <Launcher items={items} selected={Math.min(selected, items.length - 1)} onPick={pick} /> : null}
-      <div className="relative flex flex-col rounded-2xl border border-nb-border bg-nb-bg shadow-soft transition-colors focus-within:border-nb-accent/60 focus-within:ring-2 focus-within:ring-nb-accent/20">
+      <div className="relative flex flex-col rounded-[20px] border border-nb-border bg-nb-bg transition-colors focus-within:border-nb-accent/40">
         <textarea
           ref={input}
           id="nb-composer-input"
@@ -481,7 +481,7 @@ export function Composer({
           aria-label={t('composer.placeholder')}
           placeholder={t('composer.placeholder')}
           disabled={noModel}
-          className="max-h-[min(50vh,400px)] min-h-24 w-full resize-none bg-transparent px-3.5 pb-1 pt-3 text-[15px] placeholder:text-nb-muted focus:outline-none disabled:cursor-not-allowed"
+          className="max-h-[min(50vh,400px)] min-h-[76px] w-full resize-none bg-transparent px-3.5 pb-1.5 pt-3 text-[15px] leading-[1.5] placeholder:text-nb-muted focus:outline-none disabled:cursor-not-allowed"
           onChange={e => {
             setText(e.target.value);
             setRecall(null);
@@ -530,7 +530,7 @@ export function Composer({
             }
           }}
         />
-        <div className="flex items-center gap-1.5 px-2 pb-2 max-[279px]:gap-1">
+        <div className="flex items-center gap-0.5 px-1.5 pb-1.5 max-[279px]:gap-0">
           {onAttach ? (
             <>
               <div className="relative shrink-0">
@@ -541,7 +541,7 @@ export function Composer({
                   aria-expanded={menu}
                   disabled={!canAttach || full}
                   title={full ? t('composer.attachFull', { count: MAX_FILES }) : undefined}
-                  className="flex size-7 items-center justify-center rounded-lg text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg disabled:opacity-40 disabled:hover:bg-transparent"
+                  className="flex size-8 items-center justify-center rounded-full text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg disabled:opacity-40 disabled:hover:bg-transparent"
                   onClick={() => setMenu(open => !open)}>
                   <PlusIcon size={18} />
                 </button>
@@ -633,7 +633,7 @@ export function Composer({
                       : 'composer.voice',
                 )}
                 disabled={noModel}
-                className={`flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${voice === 'recording' ? 'animate-pulse bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300' : 'text-nb-muted hover:bg-nb-surface hover:text-nb-fg'}`}
+                className={`flex size-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 disabled:hover:bg-transparent ${voice === 'recording' ? 'animate-pulse bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300' : 'text-nb-muted hover:bg-nb-surface hover:text-nb-fg'}`}
                 onClick={pressMic}>
                 {voice === 'transcribing' ? (
                   <SpinnerIcon size={15} className="text-nb-link motion-safe:animate-spin" />
@@ -646,7 +646,7 @@ export function Composer({
           {active ? (
             <button
               type="button"
-              className="flex shrink-0 items-center gap-1 rounded-full bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-700"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-nb-fg pl-2.5 pr-3.5 text-xs font-medium text-nb-bg transition-opacity hover:opacity-85"
               onClick={onStop}>
               <StopIcon size={13} />
               <span className="max-[279px]:sr-only">{t('composer.stop')}</span>
@@ -657,7 +657,7 @@ export function Composer({
               disabled={(!text.trim() && !files.length && !quotes.length) || !model}
               aria-label={t('composer.send')}
               title={t('composer.send')}
-              className="flex size-7 shrink-0 items-center justify-center rounded-full bg-nb-accent text-white shadow-sm transition-colors hover:bg-nb-accent-strong disabled:opacity-40 disabled:shadow-none disabled:hover:bg-nb-accent"
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-nb-accent text-white transition-colors hover:bg-nb-accent-strong disabled:bg-nb-surface disabled:text-nb-muted/60 disabled:hover:bg-nb-surface"
               onClick={send}>
               <SendIcon size={14} />
             </button>

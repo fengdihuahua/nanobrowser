@@ -358,7 +358,7 @@ function UserMessage({
   return (
     <div className="group relative ml-8 flex flex-col items-end">
       <div
-        className="flex max-w-full flex-col gap-1 whitespace-pre-wrap break-words rounded-2xl bg-nb-surface px-3.5 py-2 text-[15px] leading-normal"
+        className="flex max-w-full flex-col gap-1 whitespace-pre-wrap break-words rounded-2xl bg-nb-surface px-3.5 py-2.5 text-[15px] leading-[1.55]"
         data-role="user">
         {(quotes ?? []).map((q, i) => (
           <blockquote key={i} className="border-l-2 border-nb-sky pl-2 text-xs">

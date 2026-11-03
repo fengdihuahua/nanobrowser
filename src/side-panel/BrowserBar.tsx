@@ -13,7 +13,7 @@ export function BrowserBar({
   if (!browser.active && !browser.lastAction && !notes.length) return null;
   const last = notes.at(-1);
   return (
-    <div className="mx-2 mb-2 rounded-xl border border-nb-border bg-nb-surface px-3 py-2 text-xs text-nb-muted">
+    <div className="mx-3 mb-1 rounded-xl bg-nb-surface/70 px-3 py-1.5 text-[11.5px] text-nb-muted">
       {browser.active ? (
         <p className="flex flex-wrap items-center gap-1.5">
           <span aria-hidden className="size-2 shrink-0 animate-pulse rounded-full bg-nb-accent" />
@@ -26,7 +26,7 @@ export function BrowserBar({
         </p>
       ) : null}
       {last ? (
-        <p className="mt-1 border-l-2 border-nb-sky pl-2">
+        <p className="mt-1 italic">
           {t('browser.note')} {plain(last.text)}
         </p>
       ) : null}

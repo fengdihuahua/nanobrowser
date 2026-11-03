@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@src/ui/i18n';
 import { Markdown } from './Markdown';
+import { SendIcon } from '@src/ui/icons';
 
 interface DshSession {
   id: string;
@@ -54,7 +55,7 @@ export function toolLine(message: DshMessage): string {
   return '';
 }
 
-export function DshChat({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function DshChat() {
   const [sessions, setSessions] = useState<DshSession[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DshMessage[]>([]);
@@ -74,7 +75,6 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
   }, [sessionId]);
 
   useEffect(() => {
-    if (!open) return;
     let disposed = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let socket: WebSocket | null = null;
@@ -213,14 +213,12 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
       socketRef.current = null;
       socket?.close();
     };
-  }, [open]);
+  }, []);
 
   useEffect(() => {
     const node = scrollRef.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [messages, open]);
-
-  if (!open) return null;
+  }, [messages]);
 
   const onSend = () => {
     const text = input.trim();
@@ -255,24 +253,13 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
   const selected = sessions.find(item => item.id === sessionId);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-nb-bg text-nb-fg">
-      <header className="flex items-center gap-2 border-b border-nb-border/60 px-3 py-2">
-        <span className="text-sm font-semibold">DSH</span>
-        <span
-          className={`text-[11px] ${connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-          {connected ? t('dsh.connected') : t('dsh.connecting')}
-        </span>
-        <span className="flex-1" />
-        <button
-          type="button"
-          title={t('dsh.close')}
-          aria-label={t('dsh.close')}
-          className="flex size-7 items-center justify-center rounded-lg text-nb-muted hover:bg-nb-surface hover:text-nb-fg"
-          onClick={onClose}>
-          ×
-        </button>
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col bg-nb-bg text-nb-fg">
       <div className="flex items-center gap-2 border-b border-nb-border/60 px-3 py-1.5">
+        <span
+          aria-hidden
+          title={connected ? t('dsh.connected') : t('dsh.connecting')}
+          className={`size-1.5 shrink-0 rounded-full ${connected ? 'bg-emerald-500' : 'bg-amber-500'}`}
+        />
         <label className="sr-only" htmlFor="dsh-session">
           {t('dsh.sessions')}
         </label>
@@ -311,7 +298,7 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
               }
               if (message.kind === 'assistant') {
                 return (
-                  <li key={`a-${message.id ?? index}`} className="mr-4 text-sm">
+                  <li key={`a-${message.id ?? index}`} className="nb-answer pr-4">
                     <Markdown text={message.text ?? ''} />
                   </li>
                 );
@@ -320,13 +307,15 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
                 return (
                   <li
                     key={`t-${message.callId ?? index}-${index}`}
-                    className={`border-l-2 pl-2 font-mono text-[11px] leading-5 ${
-                      message.isError
-                        ? 'border-red-400 text-red-600 dark:text-red-300'
-                        : 'border-nb-border text-nb-muted'
+                    className={`flex items-start gap-2 py-0.5 text-[11.5px] leading-5 ${
+                      message.isError ? 'text-red-600 dark:text-red-300' : 'text-nb-muted'
                     }`}
                     title={message.args ?? undefined}>
-                    {toolLine(message)}
+                    <span
+                      aria-hidden
+                      className={`mt-[7px] size-1.5 shrink-0 rounded-full ${message.isError ? 'bg-red-500' : 'bg-emerald-500/60'}`}
+                    />
+                    <span className="min-w-0 flex-1 truncate font-mono">{toolLine(message)}</span>
                   </li>
                 );
               }
@@ -338,12 +327,12 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
       {userSteps.map(step => (
         <div
           key={step.id}
-          className="mx-2 mt-2 rounded-xl border border-nb-border bg-nb-surface px-3 py-2 text-xs text-nb-fg">
-          <p className="font-medium">{t('dsh.userStep.title')}</p>
-          <p className="mt-1 whitespace-pre-wrap">{step.text}</p>
+          className="mx-3 mb-2 flex flex-col gap-2 rounded-2xl border border-nb-border bg-nb-surface/70 px-3.5 py-3 text-[13px] text-nb-fg">
+          <p className="font-semibold">{t('dsh.userStep.title')}</p>
+          <p className="whitespace-pre-wrap text-nb-fg/90">{step.text}</p>
           <button
             type="button"
-            className="mt-2 rounded-md bg-nb-fg px-2 py-1 text-nb-bg"
+            className="self-start rounded-full bg-nb-accent px-3.5 py-1.5 text-xs font-medium text-white hover:bg-nb-accent-strong"
             onClick={() => answerUserStep(step.id)}>
             {t('dsh.userStep.continue')}
           </button>
@@ -354,25 +343,28 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
         return (
           <div
             key={approval.id}
-            className="mx-2 mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-            <p className="font-medium">{t('dsh.approval.title', { tool: approval.toolName ?? 'tool' })}</p>
-            {detail ? <p className="mt-1 whitespace-pre-wrap">{detail}</p> : null}
-            <div className="mt-2 flex flex-wrap gap-2">
+            className="mx-3 mb-2 flex flex-col gap-2 rounded-2xl border border-amber-300/90 bg-amber-50/80 px-3.5 py-3 text-[13px] leading-[1.5] text-amber-950 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-50">
+            <p className="flex items-center gap-2 font-semibold">
+              <span aria-hidden className="size-1.5 rounded-full bg-amber-500" />
+              {t('dsh.approval.title', { tool: approval.toolName ?? 'tool' })}
+            </p>
+            {detail ? <p className="whitespace-pre-wrap text-amber-900/90 dark:text-amber-100/90">{detail}</p> : null}
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className="rounded-md bg-nb-fg px-2 py-1 text-nb-bg"
+                className="rounded-full bg-nb-fg px-3.5 py-1.5 text-xs font-medium text-nb-bg hover:opacity-85"
                 onClick={() => answerApproval(approval.id, 'allow')}>
                 {t('dsh.approval.allow')}
               </button>
               <button
                 type="button"
-                className="rounded-md border border-amber-400 px-2 py-1"
+                className="rounded-full border border-amber-400 bg-nb-bg px-3.5 py-1.5 text-xs hover:bg-amber-50 dark:bg-transparent dark:hover:bg-amber-900/30"
                 onClick={() => answerApproval(approval.id, 'deny')}>
                 {t('dsh.approval.deny')}
               </button>
               <button
                 type="button"
-                className="rounded-md border border-amber-400 px-2 py-1"
+                className="rounded-full px-1.5 py-1.5 text-xs text-amber-800/80 hover:underline dark:text-amber-200/80"
                 onClick={() => answerApproval(approval.id, 'delegate')}>
                 {t('dsh.approval.delegate')}
               </button>
@@ -396,9 +388,9 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
           {t('dsh.includePage')}
           {includePage ? <span className="text-nb-sky">· {t('dsh.pageAttached')}</span> : null}
         </label>
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-1.5 rounded-[20px] border border-nb-border bg-nb-bg px-2 py-1.5 transition-colors focus-within:border-nb-accent/40">
           <textarea
-            className="min-h-[64px] flex-1 resize-none rounded-xl border border-nb-border bg-nb-bg px-3 py-2 text-sm text-nb-fg placeholder:text-nb-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-nb-accent"
+            className="min-h-[56px] flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] leading-[1.5] text-nb-fg placeholder:text-nb-muted focus:outline-none"
             placeholder={t('dsh.placeholder')}
             value={input}
             onChange={event => setInput(event.target.value)}
@@ -409,22 +401,24 @@ export function DshChat({ open, onClose }: { open: boolean; onClose: () => void 
               }
             }}
           />
-          <div className="flex flex-col gap-1">
-            <button
-              type="button"
-              className="rounded-lg bg-nb-accent px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-              disabled={!connected || !sessionId || !input.trim()}
-              onClick={onSend}>
-              {t('dsh.send')}
-            </button>
+          <div className="flex shrink-0 items-center gap-1 pb-0.5">
             {running ? (
               <button
                 type="button"
-                className="rounded-lg border border-nb-border px-3 py-1 text-xs text-nb-fg hover:bg-nb-surface"
+                className="mr-1 flex h-8 items-center rounded-full bg-nb-fg px-3 text-xs font-medium text-nb-bg hover:opacity-85"
                 onClick={onStop}>
                 {t('dsh.stop')}
               </button>
             ) : null}
+            <button
+              type="button"
+              aria-label={t('dsh.send')}
+              title={t('dsh.send')}
+              className="flex size-8 items-center justify-center rounded-full bg-nb-accent text-white transition-colors hover:bg-nb-accent-strong disabled:bg-nb-surface disabled:text-nb-muted/60"
+              disabled={!connected || !sessionId || !input.trim()}
+              onClick={onSend}>
+              <SendIcon size={14} />
+            </button>
           </div>
         </div>
       </div>

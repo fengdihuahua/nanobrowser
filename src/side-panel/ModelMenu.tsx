@@ -57,7 +57,9 @@ export function ModelMenu({
   const chosen = models.find(m => sameRef(model, m.ref));
   const row = chosen ? effortRow(chosen.capability, reasoning) : null;
   // The button names the effort for a model known to reason.
-  const showEffort = !!row && (chosen?.capability === 'optional' || chosen?.capability === 'always');
+  // "None" is the default and says nothing: the button names the effort only when one was asked for.
+  const showEffort =
+    !!row && (chosen?.capability === 'optional' || chosen?.capability === 'always') && row.shown !== 'none';
   const label = chosen ? chosen.name : t(models.length ? 'composer.noModel' : 'composer.noModels');
 
   useEffect(() => {
@@ -93,7 +95,7 @@ export function ModelMenu({
         aria-expanded={open}
         data-label={t('composer.model')}
         data-value={model ? valueOf(model) : ''}
-        className="flex min-w-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-xs text-nb-muted hover:border-nb-border hover:text-nb-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-nb-accent/40 disabled:hover:border-transparent disabled:hover:text-nb-muted"
+        className="flex min-w-0 items-center gap-1 rounded-full px-2 py-1 text-xs text-nb-muted transition-colors hover:bg-nb-surface hover:text-nb-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-nb-accent/40 disabled:hover:bg-transparent disabled:hover:text-nb-muted"
         onClick={() => setOpen(o => !o)}>
         <span className="truncate">{label}</span>
         {/* In a narrow panel the effort goes first, then the name is cut. */}
