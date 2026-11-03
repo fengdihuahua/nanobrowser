@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react';
 import { DEFAULT_SETTINGS, settingsStorage } from '@src/store/settings';
 import type { Theme, UiLanguage } from '@src/store/settings';
-import { AutoNotice } from '@src/ui/auto-notice';
-import { Button, Input, Select, Switch } from '@src/ui/components';
+import { Button, Select, Switch } from '@src/ui/components';
 import { useStorage } from '@src/ui/hooks';
 import { t } from '@src/ui/i18n';
 import { KeyboardIcon } from '@src/ui/icons';
-import { LANGUAGE_NAMES, RESPONSE_LANGUAGES } from '@src/ui/language';
-import { ModeMenu } from '@src/ui/mode-menu';
+import { LANGUAGE_NAMES } from '@src/ui/language';
 import { SettingsCard, SettingsRow } from './SettingsCard';
 
 /**
@@ -55,24 +53,6 @@ function KeyboardShortcut() {
   );
 }
 
-/** The mode new conversations start in; the composer changes it per conversation. */
-function ModeSelect() {
-  const settings = useStorage(settingsStorage, DEFAULT_SETTINGS);
-  return (
-    <>
-      <SettingsRow label={t('agent.defaultMode')} description={t('agent.defaultModeHint')}>
-        <ModeMenu
-          size="large"
-          label={t('agent.defaultMode')}
-          mode={settings.defaultMode}
-          onMode={mode => void settingsStorage.set(s => ({ ...s, defaultMode: mode }))}
-        />
-      </SettingsRow>
-      {settings.defaultMode === 'auto' ? <AutoNotice dismissible={false} /> : null}
-    </>
-  );
-}
-
 /** The interface language, the browser's by default. */
 export function UiLanguageRow() {
   const settings = useStorage(settingsStorage, DEFAULT_SETTINGS);
@@ -98,38 +78,8 @@ export function GeneralSection() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="sr-only">{t('settings.nav.general')}</h2>
-      <SettingsCard title={t('general.agent')} className="flex flex-col gap-6">
-        <ModeSelect />
-        <SettingsRow label={t('agent.turnCap')} description={t('agent.turnCapHint')}>
-          <Input
-            aria-label={t('agent.turnCap')}
-            type="number"
-            min={5}
-            max={500}
-            className="w-24"
-            value={settings.turnCap}
-            onChange={e => {
-              const n = Math.round(Number(e.target.value));
-              if (Number.isFinite(n) && n >= 1) void settingsStorage.set(s => ({ ...s, turnCap: Math.min(500, n) }));
-            }}
-          />
-        </SettingsRow>
-      </SettingsCard>
       <SettingsCard title={t('general.language')} className="flex flex-col gap-6">
         <UiLanguageRow />
-        <SettingsRow label={t('language.response')} description={t('language.responseHint')}>
-          <Select
-            aria-label={t('language.response')}
-            value={settings.responseLanguage}
-            onChange={e => void settingsStorage.set(s => ({ ...s, responseLanguage: e.target.value }))}>
-            <option value="auto">{t('language.responseAuto')}</option>
-            {RESPONSE_LANGUAGES.map(l => (
-              <option key={l.value} value={l.value}>
-                {l.name}
-              </option>
-            ))}
-          </Select>
-        </SettingsRow>
       </SettingsCard>
       <SettingsCard title={t('general.appearance')} className="flex flex-col gap-6">
         <SettingsRow label={t('language.theme')}>

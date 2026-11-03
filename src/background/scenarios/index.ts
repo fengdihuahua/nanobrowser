@@ -21,7 +21,3 @@ import './clicks-dialogs-frames';
 import './drawn-over-pages';
 import './masked-names';
 import './set-g';
-import './set-f';
-import './set-g-loop';
-import './set-i';
-import './set-u';

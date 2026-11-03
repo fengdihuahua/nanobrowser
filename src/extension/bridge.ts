@@ -5,10 +5,12 @@
 // This is a developer surface, not part of the product: without the build flag nothing here runs.
 import { isRestrictedUrl } from '@src/browser-control';
 import type { Session } from '@src/browser-control';
-import { AGENT_LABELS } from './agent-session';
 import { browserPrompts } from './browser-prompts';
 import { DebugRecorder } from './debug-recorder';
 import { addPromptRoute, controllerReady } from './layer';
+
+/** Labels defused wherever page text holds them: the model must not mistake a page for the host's own notes. */
+const AGENT_LABELS = ['[Nanobrowser note', 'browser-state', 'agent-notes', 'custom-instructions'];
 
 const ENABLED = !!import.meta.env.WXT_BRIDGE;
 const PORT = Number(import.meta.env.WXT_BRIDGE_PORT ?? 8790);

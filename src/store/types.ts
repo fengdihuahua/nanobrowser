@@ -1,8 +1,12 @@
 // What the extension stores. Plain JSON, so IndexedDB and chrome.storage hold it as it is.
-import type { ReasoningEffort, WireEffort } from '../llm/catalogue';
-import type { ProviderKind } from '../llm/providers';
 
 export type PermissionMode = 'ask' | 'auto';
+
+/** The model facts the extension still names, for the settings and site-rule types it keeps. */
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+export type WireEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+export type ProviderKind =
+  'anthropic' | 'openai' | 'gemini' | 'openai-compatible' | 'ollama' | 'lmstudio' | 'openrouter';
 
 /** Custom instructions: at most this many characters reach the system prompt. */
 export const CUSTOM_INSTRUCTIONS_MAX = 1500;
