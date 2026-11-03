@@ -133,8 +133,8 @@ Hub (扩展连接、客户端注册、租约、队列、取消、事件)
 | 扩展 v2 测试 | `bridge.ts` 没有单测/假扩展测试 |
 | 权限/重连打磨 | Origin 校验、rate limit、断线重连状态还可以加强 |
 | 自动检查 | `panel-*`、模型、eval、技能回放那批 autorun 检查随产品一起删了；面向 Hub 的新检查还没写 |
-| 依赖 | `package.json` 里的 `ai` / `@ai-sdk/*`、`idb`、`fake-indexeddb` 已无人引用，等下次跑 `pnpm install` 时删 |
-| 商店文案 | Chrome Web Store 的条目还是旧产品描述，发布前要改 |
+| 依赖 | `package.json` 里 `ai`、`@ai-sdk/*`、`idb`、`fake-indexeddb`、`@radix-ui/react-dialog` 已无人引用。删掉要同步 `pnpm-lock.yaml`，需要 Node ≥24.22.1 和 pnpm 10.34.7（本机是 Node 22 + pnpm 10.5，`engine-strict` 直接拒绝），所以留给有那条工具链的环境跑一次 `pnpm install` |
+| 商店条目 | 文案已备好：[store-listing.md](store-listing.md)（名称、描述、逐条权限理由、data-use 回答、素材清单）。商店后台里的旧条目还没替换 |
 
 ## 7. 阶段状态
 
