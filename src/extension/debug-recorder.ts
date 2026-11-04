@@ -129,32 +129,38 @@ export class DebugRecorder {
   }
 
   /** The captured console messages, newest last, optionally filtered and cleared. */
-  readConsole(args: Record<string, unknown>): string {
+  /** The captured console messages, as the lines the panel shows and as entries a skill can assert on. */
+  readConsole(args: Record<string, unknown>): { text: string; entries: ConsoleEntry[] } {
     const level = typeof args.level === 'string' ? args.level.toLowerCase() : 'all';
     const limit = bounded(args.limit, 50, 1, 200);
     const matching = this.#messages.filter(m => level === 'all' || m.level.toLowerCase() === level);
-    const lines = matching.slice(-limit).map(m => `[${m.level}] ${m.text}${m.url ? ` (${m.url})` : ''}`);
+    const entries = matching.slice(-limit);
     if (args.clear === true) this.#messages = [];
-    return lines.length ? lines.join('\n') : `(no console messages${level === 'all' ? '' : ` at ${level}`})`;
+    const lines = entries.map(m => `[${m.level}] ${m.text}${m.url ? ` (${m.url})` : ''}`);
+    return {
+      text: lines.length ? lines.join('\n') : `(no console messages${level === 'all' ? '' : ` at ${level}`})`,
+      entries,
+    };
   }
 
   /** The captured network requests, in request order, optionally filtered and cleared. */
-  readNetwork(args: Record<string, unknown>): string {
+  readNetwork(args: Record<string, unknown>): { text: string; requests: NetworkEntry[] } {
     const filter = typeof args.filter === 'string' ? args.filter.toLowerCase() : '';
     const failedOnly = args.failedOnly === true;
     const limit = bounded(args.limit, 50, 1, 200);
-    const entries = [...this.#requests.values()].filter(
+    const matching = [...this.#requests.values()].filter(
       e => (!filter || e.url.toLowerCase().includes(filter)) && (!failedOnly || !!e.failed),
     );
-    const lines = entries.slice(-limit).map(e => {
-      const status = e.failed ? `FAILED ${e.failed}` : (e.status ?? 'pending');
-      return `${status} ${e.method} ${e.url}${e.type ? ` (${e.type})` : ''}`;
-    });
+    const requests = matching.slice(-limit);
     if (args.clear === true) {
       this.#requests.clear();
       this.#order = [];
     }
-    return lines.length ? lines.join('\n') : '(no network requests)';
+    const lines = requests.map(e => {
+      const status = e.failed ? `FAILED ${e.failed}` : (e.status ?? 'pending');
+      return `${status} ${e.method} ${e.url}${e.type ? ` (${e.type})` : ''}`;
+    });
+    return { text: lines.length ? lines.join('\n') : '(no network requests)', requests };
   }
 
   #reset(): void {

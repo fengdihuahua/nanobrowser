@@ -82,7 +82,7 @@ describe('DebugRecorder', () => {
       },
     });
 
-    expect(recorder.readConsole({})).toBe(
+    expect(recorder.readConsole({}).text).toBe(
       [
         '[log] ready (https://example.test/app.js)',
         '[warning] { rows: 3 }',
@@ -100,7 +100,7 @@ describe('DebugRecorder', () => {
       exceptionDetails: { text: 'Uncaught', url: 'https://example.test/app.js', lineNumber: 0 },
     });
 
-    expect(recorder.readConsole({})).toBe('[error] Uncaught (https://example.test/app.js:1)');
+    expect(recorder.readConsole({}).text).toBe('[error] Uncaught (https://example.test/app.js:1)');
   });
 
   it('filters by level and clears what it has read', async () => {
@@ -110,9 +110,9 @@ describe('DebugRecorder', () => {
     emit('Runtime.consoleAPICalled', { type: 'log', args: [{ type: 'string', value: 'one' }] });
     emit('Runtime.consoleAPICalled', { type: 'error', args: [{ type: 'string', value: 'two' }] });
 
-    expect(recorder.readConsole({ level: 'error' })).toBe('[error] two');
-    expect(recorder.readConsole({ clear: true })).toBe('[log] one\n[error] two');
-    expect(recorder.readConsole({})).toBe('(no console messages)');
+    expect(recorder.readConsole({ level: 'error' }).text).toBe('[error] two');
+    expect(recorder.readConsole({ clear: true }).text).toBe('[log] one\n[error] two');
+    expect(recorder.readConsole({}).text).toBe('(no console messages)');
   });
 
   it('records requests with status, then failures, and filters them', async () => {
@@ -137,16 +137,16 @@ describe('DebugRecorder', () => {
     emit('Network.loadingFailed', { requestId: '2', errorText: 'net::ERR_CONNECTION_REFUSED' });
     emit('Network.loadingFailed', { requestId: '3', canceled: true });
 
-    expect(recorder.readNetwork({})).toBe(
+    expect(recorder.readNetwork({}).text).toBe(
       [
         '201 POST https://api.test/ok (Fetch)',
         'FAILED net::ERR_CONNECTION_REFUSED GET https://api.test/broken (XHR)',
       ].join('\n'),
     );
-    expect(recorder.readNetwork({ failedOnly: true, filter: 'broken' })).toBe(
+    expect(recorder.readNetwork({ failedOnly: true, filter: 'broken' }).text).toBe(
       'FAILED net::ERR_CONNECTION_REFUSED GET https://api.test/broken (XHR)',
     );
-    expect(recorder.readNetwork({ filter: 'api.test/ok' })).toBe('201 POST https://api.test/ok (Fetch)');
+    expect(recorder.readNetwork({ filter: 'api.test/ok' }).text).toBe('201 POST https://api.test/ok (Fetch)');
   });
 
   it('keeps a response whose request started before the recorder attached', async () => {
@@ -159,7 +159,7 @@ describe('DebugRecorder', () => {
       type: 'Script',
     });
 
-    expect(recorder.readNetwork({})).toBe('200 ? https://cdn.test/a.js (Script)');
+    expect(recorder.readNetwork({}).text).toBe('200 ? https://cdn.test/a.js (Script)');
   });
 
   it('subscribes on the tab root session only and enables the three domains', async () => {
@@ -176,9 +176,9 @@ describe('DebugRecorder', () => {
     emit('Runtime.consoleAPICalled', { type: 'log', args: [{ type: 'string', value: 'first' }] });
 
     await recorder.ensure(7);
-    expect(recorder.readConsole({})).toBe('[log] first');
+    expect(recorder.readConsole({}).text).toBe('[log] first');
 
     await recorder.ensure(8);
-    expect(recorder.readConsole({})).toBe('(no console messages)');
+    expect(recorder.readConsole({}).text).toBe('(no console messages)');
   });
 });

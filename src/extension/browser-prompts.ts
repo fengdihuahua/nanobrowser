@@ -13,6 +13,9 @@ import type {
 } from '@src/browser-control';
 import type { OpenPrompt, PanelEventBody } from '@src/ui/protocol';
 
+/** How long a task's write grant lasts if nothing ends it sooner. A backstop, not the intended way out. */
+const TASK_GRANT_MS = 30 * 60_000;
+
 interface Waiting {
   prompt: OpenPrompt;
   resolve: (answer: unknown) => void;
@@ -31,6 +34,11 @@ export interface BrowserPromptsHooks {
 
 export class BrowserPrompts {
   #open = new Map<string, Waiting>();
+  /**
+   * Tabs whose classified writes the user allowed for the rest of the task, from a card's "allow this task". In memory
+   * only: a detach, a worker restart or the cap below ends it, and it never becomes a site rule.
+   */
+  #taskGrants = new Map<number, number>();
   /** The last status line, kept so a panel that connects later still shows it. */
   #state: { active: boolean; tabId?: number; lastAction?: string } | null = null;
 
@@ -76,8 +84,9 @@ export class BrowserPrompts {
     return true;
   }
 
-  /** Every card of the session, withdrawn (the bridge stopped, or the worker restarted). */
+  /** Every card of the session, withdrawn (the bridge stopped, or the worker restarted), and every grant with them. */
   withdrawAll(): void {
+    this.#taskGrants.clear();
     for (const waiting of [...this.#open.values()]) {
       if (this.#close(waiting.prompt.id, 'withdrawn')) waiting.resolve('withdrawn');
     }
@@ -89,9 +98,33 @@ export class BrowserPrompts {
     return true;
   }
 
-  /** The host's write policy for the external session. */
+  /** The host's write policy for the external session, after the task's own grant. */
   decideWrite(question: WriteQuestion): WriteDecision {
+    if (this.#granted(question.tabId)) return { decision: 'run', by: 'task', canRemember: false };
     return this.hooks.decideWrite(question);
+  }
+
+  #granted(tabId: number): boolean {
+    const until = this.#taskGrants.get(Number(tabId));
+    if (until === undefined) return false;
+    if (Date.now() <= until) return true;
+    this.#taskGrants.delete(Number(tabId));
+    return false;
+  }
+
+  /** Allows the classified writes on this tab until the task ends; the user asked for it on a card. */
+  allowTask(tabId: number): void {
+    this.#taskGrants.set(Number(tabId), Date.now() + TASK_GRANT_MS);
+  }
+
+  /** Whether this tab already has the task's grant, for a panel that wants to say so. */
+  taskGranted(tabId: number): boolean {
+    return this.#granted(tabId);
+  }
+
+  /** Ends every task grant: the bridge stopped, or the user detached. */
+  clearGrants(): void {
+    this.#taskGrants.clear();
   }
 
   /** A note the external agent puts in the panel, in its own words. */
@@ -131,6 +164,11 @@ export class BrowserPrompts {
           request.tabId,
           signal,
         );
+        if (answer === 'approve-task') {
+          // The user allowed the rest of this task on this tab: this write goes through, and so do the ones after it.
+          this.allowTask(request.tabId);
+          return 'approve';
+        }
         const choice = answer === 'approve' || answer === 'approve-remember' ? answer : 'decline';
         if (choice === 'approve-remember' && request.canRemember && site) await this.hooks.remember(site);
         return choice;

@@ -46,7 +46,7 @@ export interface GateResult {
   /** What was judged (`Judgement.basis`), when the action was classified: a later check must find the same. */
   basis?: string;
   /** Under a host write policy: how the write was allowed. */
-  allowedBy?: 'user' | 'site-rule' | 'auto';
+  allowedBy?: 'user' | 'site-rule' | 'auto' | 'task';
 }
 
 /** A classification with what it rests on: the category, its reason (names, amount) and, for a submission, where. */

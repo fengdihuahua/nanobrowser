@@ -37,7 +37,7 @@ export interface ActionReceipt {
   sensitive?: SensitiveCategory;
   confirmedByUser?: boolean;
   /** How a write was allowed under a host write policy: by the user on a card, by the site's rule, or by Auto mode. */
-  allowedBy?: 'user' | 'site-rule' | 'auto';
+  allowedBy?: 'user' | 'site-rule' | 'auto' | 'task';
   /**
    * Downloads the page began during the action (`Page.downloadWillBegin`): reported, not held.
    * `name` is the suggested file name, `url` where it comes from.

@@ -8,6 +8,7 @@ import { applyTheme } from '@src/ui/theme';
 import { websiteUrl } from '@src/ui/links';
 import { LogoMark, SettingsIcon } from '@src/ui/icons';
 import { DshChat } from './DshChat';
+import { WriteCards } from './WriteCards';
 
 export function App() {
   useLanguage();
@@ -40,6 +41,8 @@ export function App() {
         </button>
       </header>
       <DshChat />
+      {/* The layer's write cards: they ask on their own tab, whatever conversation the panel is showing. */}
+      <WriteCards />
     </div>
   );
 }

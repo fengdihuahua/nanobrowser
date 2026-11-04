@@ -238,3 +238,14 @@ export type PanelEvent = PanelEventBody & { seq: number; conversationId: string 
  * `{ type: DATA_REQUEST, op: 'delete-all' }`, answered with `{ ok: true }`.
  */
 export const DATA_REQUEST = 'nb.data';
+
+/**
+ * The write cards, over `chrome.runtime.sendMessage` rather than the port: the side panel asks what is open and answers
+ * one. The worker holds them (`src/extension/prompts-host.ts`); a card with no panel open waits until the layer's clock
+ * runs out, and the answer is then a decline, so nothing is dispatched unseen.
+ */
+export type PromptRequest =
+  | { type: 'prompts:list' }
+  | { type: 'prompt:answer'; id: string; answer: 'approve' | 'approve-remember' | 'approve-task' | 'decline' };
+
+export type PromptReply = { prompts: OpenPrompt[]; answered?: boolean };

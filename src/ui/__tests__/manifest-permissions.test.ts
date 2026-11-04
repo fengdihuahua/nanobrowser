@@ -7,14 +7,14 @@ describe('manifest permission lists', () => {
   it('the product requires only what the layer, the panel and the Hub client use', () => {
     const product = permissionLists('product');
     expect([...product.permissions].sort()).toEqual(
-      ['alarms', 'debugger', 'scripting', 'sidePanel', 'storage', 'tabs', 'webNavigation'].sort(),
+      ['alarms', 'debugger', 'scripting', 'sidePanel', 'storage', 'tabGroups', 'tabs', 'webNavigation'].sort(),
     );
     expect(product.optional_permissions).toEqual([]);
   });
 
   it('the product does not ask for the permissions the agent features needed', () => {
     const product = permissionLists('product');
-    for (const p of ['tabGroups', 'notifications', 'downloads', 'downloads.open', 'offscreen', 'contextMenus'])
+    for (const p of ['notifications', 'downloads', 'downloads.open', 'offscreen', 'contextMenus'])
       expect([...product.permissions, ...product.optional_permissions]).not.toContain(p);
     expect([...product.permissions, ...product.optional_permissions]).not.toContain('activeTab');
   });

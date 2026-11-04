@@ -115,3 +115,34 @@ describe('BrowserPrompts', () => {
     ).resolves.toEqual({ outcome: 'cancel' });
   });
 });
+
+describe('a task grant', () => {
+  it('lets the writes through after "allow for this task", without becoming a site rule', async () => {
+    const { store, asked, remembered } = setup();
+    const controller = new AbortController();
+    const answer = store.userPrompt().confirm(request(), controller.signal);
+
+    const open = store.prompts();
+    expect(open).toHaveLength(1);
+    store.answer(open[0].id, 'approve-task');
+    // The layer only ever hears the three answers it knows: this write is a plain approval.
+    expect(await answer).toBe('approve');
+
+    const after = store.decideWrite({ category: 'submit', site: 'shop.test', tabId: 12 });
+    expect(after).toEqual({ decision: 'run', by: 'task', canRemember: false });
+    // Nothing was written to the site rules, and the host policy was not consulted a second time.
+    expect(remembered).toEqual([]);
+    expect(asked).toHaveLength(0);
+    expect(store.taskGranted(12)).toBe(true);
+  });
+
+  it('does not cover another tab, and ends with the session', async () => {
+    const { store } = setup();
+    store.allowTask(12);
+    expect(store.decideWrite({ category: 'submit', site: 'shop.test', tabId: 12 }).by).toBe('task');
+    expect(store.decideWrite({ category: 'submit', site: 'shop.test', tabId: 99 }).by).not.toBe('task');
+
+    store.clearGrants();
+    expect(store.taskGranted(12)).toBe(false);
+  });
+});

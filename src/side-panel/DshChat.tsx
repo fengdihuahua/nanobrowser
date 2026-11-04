@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '@src/ui/i18n';
 import { Markdown } from './Markdown';
-import { SendIcon } from '@src/ui/icons';
+import { syncTaskGroups } from './task-tabs';
+import { PlusIcon, SendIcon } from '@src/ui/icons';
 
 interface DshSession {
   id: string;
   title: string;
   status: string;
   running?: boolean;
+  /** The tabs this task drives, from the hub's leases: the pages that belong to it. */
+  tabs?: number[];
 }
 
 interface DshEvent {
@@ -43,6 +46,24 @@ interface DshUserStep {
 const PORT = import.meta.env.WXT_BRIDGE_PORT ?? '8790';
 const TOKEN = import.meta.env.WXT_BRIDGE_TOKEN ?? 'dev-token';
 const URL = `ws://127.0.0.1:${PORT}/client/chat/ws?token=${encodeURIComponent(TOKEN)}`;
+const TASK_URL = `http://127.0.0.1:${PORT}/client/task?token=${encodeURIComponent(TOKEN)}`;
+const RELEASE_URL = `http://127.0.0.1:${PORT}/client/tab/release?token=${encodeURIComponent(TOKEN)}`;
+
+/**
+ * The request that starts a task on this page. Pure, so the panel's one write to the hub can be checked without a
+ * browser: the text is trimmed the same way the composer trims it.
+ */
+export function taskRequest(text: string, tabId: number, includePage: boolean) {
+  return { url: TASK_URL, body: { text: text.trim(), tabId, includePage } };
+}
+
+/**
+ * The request that gives one page back and keeps the task. Also pure: the chip's × is the panel's other write to the
+ * hub, and it must name the task as the hub does, which is the session id.
+ */
+export function releaseRequest(sessionId: string, tabId: number) {
+  return { url: RELEASE_URL, body: { clientId: sessionId, tabId } };
+}
 
 /** What the user typed, without the page-context block the host prepends before sending it to the model. */
 export function displayUser(text: string): string {
@@ -62,10 +83,15 @@ export function DshChat() {
   const [input, setInput] = useState('');
   const [includePage, setIncludePage] = useState(false);
   const [connected, setConnected] = useState(false);
+  /** Failed connections since the last successful one: the panel says it is reconnecting, and how many times. */
+  const [attempts, setAttempts] = useState(0);
   const [running, setRunning] = useState(false);
   const [approvals, setApprovals] = useState<DshApproval[]>([]);
   const [userSteps, setUserSteps] = useState<DshUserStep[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  /** The selected task's pages: the chips above the conversation, each of them a tab the task drives. */
+  const [chips, setChips] = useState<Array<{ tabId: number; title: string }>>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const sessionRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -73,6 +99,35 @@ export function DshChat() {
   useEffect(() => {
     sessionRef.current = sessionId;
   }, [sessionId]);
+
+  // A task is one tab group. The hub sends the session list again whenever a lease changes, so a page the task opened
+  // joins its task's group on its own, and one it gave back leaves.
+  useEffect(() => {
+    void syncTaskGroups(
+      sessions.map(session => ({ id: session.id, title: session.title, tabs: session.tabs ?? [] })),
+    ).catch(() => undefined);
+  }, [sessions]);
+
+  const tabs = sessions.find(item => item.id === sessionId)?.tabs;
+  // A group shows what a page is called, not only that it exists: the chip follows a title as the page loads.
+  useEffect(() => {
+    let disposed = false;
+    if (!tabs || tabs.length === 0) {
+      setChips([]);
+      return;
+    }
+    void Promise.all(tabs.map(tabId => chrome.tabs.get(tabId).catch(() => null))).then(list => {
+      if (disposed) return;
+      setChips(
+        list
+          .filter((tab): tab is chrome.tabs.Tab => !!tab && tab.id !== undefined)
+          .map(tab => ({ tabId: tab.id!, title: tab.title || tab.url || String(tab.id) })),
+      );
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [tabs, sessionId]);
 
   useEffect(() => {
     let disposed = false;
@@ -177,21 +232,26 @@ export function DshChat() {
       }
     };
 
-    const connect = () => {
+    const connect = async () => {
       if (disposed) return;
       setConnected(false);
-      socket = new WebSocket(URL);
+      // The tab this panel was opened on: the host shows the session that owns it, not the newest one.
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => []);
+      if (disposed) return;
+      socket = new WebSocket(tab?.id === undefined ? URL : `${URL}&tabId=${tab.id}`);
       socketRef.current = socket;
       socket.onopen = () => {
         if (disposed) return;
         setConnected(true);
+        setAttempts(0);
         setError(null);
       };
       socket.onclose = () => {
         if (disposed) return;
         setConnected(false);
+        setAttempts(previous => previous + 1);
         if (socketRef.current === socket) socketRef.current = null;
-        retry = setTimeout(connect, 2000);
+        retry = setTimeout(() => void connect(), 2000);
       };
       socket.onerror = () => {
         // The close handler retries; the panel shows the offline state.
@@ -206,7 +266,7 @@ export function DshChat() {
       };
     };
 
-    connect();
+    void connect();
     return () => {
       disposed = true;
       if (retry) clearTimeout(retry);
@@ -226,6 +286,45 @@ export function DshChat() {
     if (!text || !sessionId || !socket || socket.readyState !== WebSocket.OPEN) return;
     socket.send(JSON.stringify({ type: 'send', sessionId, text, includePage }));
     setInput('');
+  };
+
+  /**
+   * Starts a task from this panel: the tab the user is looking at, a new DSH session, the typed text as its first
+   * message. The session appears in the picker and is selected, so the panel then mirrors it like any other.
+   */
+  const onStartTask = async () => {
+    const text = input.trim();
+    if (!text || starting) return;
+    setStarting(true);
+    setError(null);
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab?.id === undefined) throw new Error(t('dsh.newTaskTab'));
+      const request = taskRequest(text, tab.id, includePage);
+      let response: Response;
+      try {
+        response = await fetch(request.url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(request.body),
+        });
+      } catch {
+        // No hub at all: there is no brain to start a task with, and saying so is the whole message.
+        throw new Error(t('dsh.noHub'));
+      }
+      const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; sessionId?: string; error?: string };
+      if (!response.ok || payload.ok === false || !payload.sessionId) {
+        throw new Error(payload.error ?? `The hub answered ${response.status}.`);
+      }
+      setInput('');
+      const socket = socketRef.current;
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'sessions' }));
+      onSelect(payload.sessionId);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+    } finally {
+      setStarting(false);
+    }
   };
 
   const onStop = () => {
@@ -251,6 +350,28 @@ export function DshChat() {
   };
 
   const selected = sessions.find(item => item.id === sessionId);
+
+  /** Bring a page of this task to the front, without leaving the panel. */
+  const focusTab = async (tabId: number) => {
+    const tab = await chrome.tabs.update(tabId, { active: true }).catch(() => null);
+    if (tab?.windowId !== undefined)
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => undefined);
+  };
+
+  /** Give one page back: the task keeps the rest. The hub sends the new session list, so the chip goes by itself. */
+  const dropTab = async (tabId: number) => {
+    if (!sessionId) return;
+    const request = releaseRequest(sessionId, tabId);
+    try {
+      await fetch(request.url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(request.body),
+      });
+    } catch {
+      setError(t('dsh.noHub'));
+    }
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-nb-bg text-nb-fg">
@@ -280,7 +401,41 @@ export function DshChat() {
         <span className="shrink-0 text-[11px] text-nb-muted">
           {selected?.status === 'running' ? t('dsh.running') : t('dsh.idle')}
         </span>
+        {!connected && attempts > 0 ? (
+          <span className="shrink-0 text-[11px] text-amber-600 dark:text-amber-300">
+            {t('dsh.reconnecting', { n: attempts })}
+          </span>
+        ) : null}
       </div>
+      {chips.length ? (
+        <div className="flex flex-wrap items-center gap-1 border-b border-nb-border/40 px-3 py-1.5">
+          <span className="mr-0.5 text-[10px] font-medium uppercase tracking-wide text-nb-muted">
+            {t('dsh.taskTabs')}
+          </span>
+          {chips.map(chip => (
+            <span
+              key={chip.tabId}
+              className="inline-flex max-w-[46%] items-center gap-0.5 rounded-full border border-nb-border bg-nb-surface/60 py-0.5 pl-2 pr-0.5 text-[11px] text-nb-fg">
+              <button
+                type="button"
+                className="min-w-0 truncate text-left hover:underline"
+                title={chip.title}
+                aria-label={`${chip.title} · ${t('dsh.tabSwitch')}`}
+                onClick={() => void focusTab(chip.tabId)}>
+                {chip.title}
+              </button>
+              <button
+                type="button"
+                aria-label={t('dsh.tabRemove')}
+                title={t('dsh.tabRemove')}
+                className="shrink-0 rounded-full px-1 leading-4 text-nb-muted transition-colors hover:text-red-600"
+                onClick={() => void dropTab(chip.tabId)}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3">
         {messages.length === 0 ? (
           <p className="text-sm text-nb-muted">{t('dsh.empty')}</p>
@@ -343,7 +498,7 @@ export function DshChat() {
         return (
           <div
             key={approval.id}
-            className="mx-3 mb-2 flex flex-col gap-2 rounded-2xl border border-amber-300/90 bg-amber-50/80 px-3.5 py-3 text-[13px] leading-[1.5] text-amber-950 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-50">
+            className="mx-3 mb-2 flex flex-col gap-2 rounded-2xl border border-amber-300/90 bg-amber-50/80 px-3.5 py-3 text-[13px] leading-normal text-amber-950 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-50">
             <p className="flex items-center gap-2 font-semibold">
               <span aria-hidden className="size-1.5 rounded-full bg-amber-500" />
               {t('dsh.approval.title', { tool: approval.toolName ?? 'tool' })}
@@ -364,7 +519,7 @@ export function DshChat() {
               </button>
               <button
                 type="button"
-                className="rounded-full px-1.5 py-1.5 text-xs text-amber-800/80 hover:underline dark:text-amber-200/80"
+                className="rounded-full p-1.5 text-xs text-amber-800/80 hover:underline dark:text-amber-200/80"
                 onClick={() => answerApproval(approval.id, 'delegate')}>
                 {t('dsh.approval.delegate')}
               </button>
@@ -390,7 +545,7 @@ export function DshChat() {
         </label>
         <div className="flex items-end gap-1.5 rounded-[20px] border border-nb-border bg-nb-bg px-2 py-1.5 transition-colors focus-within:border-nb-accent/40">
           <textarea
-            className="min-h-[56px] flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] leading-[1.5] text-nb-fg placeholder:text-nb-muted focus:outline-none"
+            className="min-h-[56px] flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] leading-normal text-nb-fg placeholder:text-nb-muted focus:outline-none"
             placeholder={t('dsh.placeholder')}
             value={input}
             onChange={event => setInput(event.target.value)}
@@ -410,6 +565,15 @@ export function DshChat() {
                 {t('dsh.stop')}
               </button>
             ) : null}
+            <button
+              type="button"
+              aria-label={t('dsh.newTask')}
+              title={t('dsh.newTask')}
+              className="flex size-8 items-center justify-center rounded-full border border-nb-border text-nb-muted transition-colors hover:border-nb-accent/50 hover:text-nb-accent disabled:opacity-50"
+              disabled={!connected || !input.trim() || starting}
+              onClick={() => void onStartTask()}>
+              <PlusIcon size={14} />
+            </button>
             <button
               type="button"
               aria-label={t('dsh.send')}

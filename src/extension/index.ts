@@ -2,6 +2,7 @@
 // conversation live in DSH or in an MCP client, never here.
 import './layer';
 import './panel';
+import './prompts-host';
 import { startExternalBridge } from './bridge';
 
 // A build with WXT_BRIDGE set lets the Hub drive the user's real tab through this extension.

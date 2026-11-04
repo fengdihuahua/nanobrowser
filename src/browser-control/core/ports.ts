@@ -157,7 +157,8 @@ export interface WriteQuestion {
  */
 export interface WriteDecision {
   decision: 'run' | 'ask';
-  by?: 'site-rule' | 'auto';
+  /** Who allowed it: the site's rule, Auto mode, or a grant the user gave for this task on this tab. */
+  by?: 'site-rule' | 'auto' | 'task';
   canRemember: boolean;
 }
 

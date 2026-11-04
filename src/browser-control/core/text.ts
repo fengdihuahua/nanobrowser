@@ -139,9 +139,11 @@ export function receiptLines(receipt: ActionReceipt): string[] {
         ? "allowed by the site's rule"
         : receipt.allowedBy === 'auto'
           ? 'allowed by Auto mode'
-          : receipt.confirmedByUser
-            ? 'approved by user'
-            : 'not confirmed';
+          : receipt.allowedBy === 'task'
+            ? 'allowed for this task'
+            : receipt.confirmedByUser
+              ? 'approved by user'
+              : 'not confirmed';
     parts.push(`${receipt.sensitive}: ${how}`);
   }
   parts.push(
