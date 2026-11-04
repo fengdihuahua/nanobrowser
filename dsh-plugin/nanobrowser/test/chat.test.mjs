@@ -62,7 +62,7 @@ test('sessions and history come from the live Agent', async t => {
   const { hub, cleanup } = setup();
   t.after(cleanup);
   const sessions = await hub.chat.sessions();
-  assert.deepEqual(sessions, [{ id: 's1', title: 'hello', status: 'idle', running: false, createdAt: 2 }]);
+  assert.deepEqual(sessions, [{ id: 's1', title: 'hello', status: 'idle', running: false, createdAt: 2, tabs: [] }]);
   const history = await hub.chat.history('s1');
   assert.equal(history.live, true);
   assert.deepEqual(history.messages, [{ kind: 'user', id: 'u1', text: 'hello' }]);
@@ -169,4 +169,25 @@ test('a selection that looks like markup stays text inside the boundary', async 
 test('a page that cannot be read gives no context instead of a broken one', async () => {
   const context = await buildPageContext(pageHub({ ok: false, text: 'no tab' }), { pageContextChars: 1000 }, 's1');
   assert.equal(context, '');
+});
+
+test('the panel opens on the session that owns the tab it was opened on', async t => {
+  const { agent } = fakeAgent();
+  const second = { ...agent, id: 's2', session: { header: { createdAt: 3 }, deriveMessages: () => [] } };
+  const hub = fakeHub();
+  hub.tabsOf = id => (id === 's1' ? [7] : id === 's2' ? [9] : []);
+  const ctx = {
+    agents: { roots: () => [agent, second], get: id => (id === 's1' ? agent : id === 's2' ? second : undefined) },
+    on: () => () => {},
+  };
+  const cleanup = registerChat(ctx, hub, { pageContextChars: 1000 });
+  t.after(cleanup);
+
+  // s2 is the newer session, but the panel was opened on tab 9, which s2 owns.
+  assert.equal((await hub.chat.hello(null, 9)).sessionId, 's2');
+  assert.equal((await hub.chat.hello(null, 7)).sessionId, 's1');
+  // A tab nobody owns falls back to the newest session, and an explicit session still wins.
+  assert.equal((await hub.chat.hello(null, 3)).sessionId, 's2');
+  assert.equal((await hub.chat.hello('s1', 9)).sessionId, 's1');
+  assert.deepEqual((await hub.chat.sessions()).find(s => s.id === 's2').tabs, [9]);
 });

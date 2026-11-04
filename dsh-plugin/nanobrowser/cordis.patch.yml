@@ -5,4 +5,3 @@
         port: 8790
         token: 'dev-token'
         callTimeoutMs: 360000
-        toolPrefix: 'nanobrowser_'

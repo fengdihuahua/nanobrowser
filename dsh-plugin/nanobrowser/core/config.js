@@ -17,10 +17,9 @@ export function resolveConfig(config = {}) {
     skillsDir: String(config.skillsDir ?? join(homedir(), '.dsh', 'skills', 'browser')),
     // Read-only skills that ship with the checkout. Empty means "none"; index.js fills in the repository's own folder.
     builtinSkillsDir: String(config.builtinSkillsDir ?? ''),
-    // The DSH tool names the plugin registers; the skill runner resolves through this prefix first.
-    toolPrefix: String(config.toolPrefix ?? 'nanobrowser_'),
-    // The MCP adapter's public names, so a skill recorded through MCP can still be replayed through either surface.
-    mcpToolPrefix: String(config.mcpToolPrefix ?? 'mcp__nanobrowser__'),
+    // Where a task the browser starts runs. DSH's own working directory is whatever folder it happened to be launched
+    // in, which is not a default a user can predict; a task started from a page gets its own explicit one.
+    taskCwd: String(config.taskCwd ?? homedir()),
     stepDelayMs: clamp(Number(config.stepDelayMs ?? 350), 0, 2000),
     maxSteps: clamp(Number(config.maxSteps ?? 40), 1, 100),
     pageContextChars: clamp(Number(config.pageContextChars ?? 4000), 500, 12_000),

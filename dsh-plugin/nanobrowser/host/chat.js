@@ -78,6 +78,8 @@ export async function buildPageContext(hub, settings, sessionId) {
     const title = match ? match[2] : '';
     const selected = typeof read.data?.selection?.text === 'string' ? read.data.selection.text : '';
     const selection = selected ? `<selection>${escapeText(bound(selected, 2000))}</selection>\n` : '';
+    // The prompt says later where this came from, so a message sent one page ago is not read as the current one.
+    hub.rememberPageContext?.(sessionId, { url, title });
     return `<page_context url="${attr(url)}" title="${attr(title)}">\n${selection}${bound(read.text, settings.pageContextChars)}\n</page_context>`;
   } catch {
     return '';
@@ -122,6 +124,8 @@ function createChatService(ctx, hub, settings) {
         status: agent.status,
         running: agent.status === 'running',
         createdAt,
+        // The tabs this session owns, so a panel opened on one of them can show its session and not the newest.
+        tabs: hub.tabsOf?.(String(agent.id)) ?? [],
       });
     }
     // The current session is normally the newest; the panel should open on it, not on an old idle one.
@@ -200,9 +204,15 @@ function createChatService(ctx, hub, settings) {
     return { sessionId: String(agent.id) };
   }
 
-  function hello(sessionId) {
+  function hello(sessionId, tabId) {
     const list = sessions();
-    const selected = list.find(item => item.id === sessionId)?.id ?? list[0]?.id ?? null;
+    const wantedTab = Number(tabId);
+    // The panel asks for the session that owns the tab it was opened on; an explicit session still wins.
+    const owned =
+      Number.isInteger(wantedTab) && wantedTab > 0
+        ? list.find(item => (item.tabs ?? []).includes(wantedTab))
+        : undefined;
+    const selected = list.find(item => item.id === sessionId)?.id ?? owned?.id ?? list[0]?.id ?? null;
     return {
       sessions: list,
       sessionId: selected,

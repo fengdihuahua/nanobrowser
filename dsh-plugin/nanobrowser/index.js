@@ -16,6 +16,7 @@ import { registerApprovals } from './host/approvals.js';
 import { registerSidebarRoute } from './host/sidebar.js';
 import { registerLeaseGuard } from './host/lease-guard.js';
 import { registerUserSteps } from './host/user-step.js';
+import { registerTasks } from './host/task.js';
 
 export const name = 'nanobrowser';
 export const inject = ['tools', 'skills', 'systemPrompt', 'agents', 'webServer', 'connection'];
@@ -74,6 +75,7 @@ export function apply(ctx, config) {
   ctx.effect(() => registerApprovals(ctx, hub, settings));
   ctx.effect(() => registerLeaseGuard(ctx, hub));
   ctx.effect(() => registerUserSteps(ctx, hub, settings));
+  ctx.effect(() => registerTasks(ctx, hub, settings));
   registerSidebarRoute(ctx, hub, settings);
 
   ctx.effect(() => {
@@ -181,7 +183,7 @@ function attachTool(hub) {
   return {
     name: 'nanobrowser_attach',
     description:
-      'Attach this session to a tab. Pass tabId for an exact tab, url to open a new one, or neither to take an unleased normal tab. A tab leased by another client is refused.',
+      "Attach this session to a tab. Pass tabId for an exact tab, url to open a new one, or neither to take an unleased normal tab; with none, the reply names the other tabs so you can choose a different one. A tab leased by another client is refused. This is the only way to take a tab that is not already in the session: tabs lists the session's own.",
     parameters: {
       type: 'object',
       properties: {
@@ -256,7 +258,7 @@ function detachTool(hub) {
     output: OUTPUT,
     async execute(_args, exec) {
       const clientId = exec.agent?.id ?? 'dsh:unscoped';
-      const released = hub.releaseLease(clientId);
+      const released = await hub.releaseTab(clientId);
       return { ok: true, text: released ? 'Detached from the tab.' : 'This session had no tab lease.' };
     },
   };
