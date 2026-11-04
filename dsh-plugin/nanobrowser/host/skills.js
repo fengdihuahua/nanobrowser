@@ -6,15 +6,18 @@
 import { captureTurn } from '../core/capture.js';
 import { jsonSafe } from '../core/json.js';
 import {
+  isGeneratedSop,
+  learnedSummary,
   listSkills,
   normalizeName,
+  readKnowledge,
   readSkill,
   renderSkillMd,
   skillExists,
   skillRoots,
   writeSkill,
 } from '../core/skills.js';
-import { runSkill } from '../core/run.js';
+import { runSkill, runSkillBatch } from '../core/run.js';
 
 const RICH_OUTPUT = {
   schema: {
@@ -164,13 +167,17 @@ function saveTool(hub, settings) {
         throw new Error(`Skill "${name}" already exists; pass overwrite: true to replace it.`);
       }
       let version = 1;
+      let previous;
       if (exists) {
         try {
-          version = Number((await readSkill(skillRoots(settings), name)).recipe?.version ?? 1) + 1;
+          previous = await readSkill(skillRoots(settings), name);
+          version = Number(previous.recipe?.version ?? 1) + 1;
         } catch {
           version = 1;
         }
       }
+      // The SOP is the user's unless the recorder wrote it: a recipe of the same name updates, the prose does not.
+      const keepSop = previous !== undefined && !isGeneratedSop(previous.content);
       const clientId = agent.id;
       hub.registerClient({ clientId, kind: 'dsh', sessionId: clientId });
       const tab = await activeTab(hub, clientId, exec.signal);
@@ -193,8 +200,7 @@ function saveTool(hub, settings) {
         createdFrom: { sessionId: agent.id, turn: captured.turn, at: Date.now() },
         needsReview: captured.needsReview,
       };
-      const content = renderSkillMd(recipe);
-      const dir = await writeSkill(settings.skillsDir, recipe, content);
+      const dir = await writeSkill(settings.skillsDir, recipe, keepSop ? null : renderSkillMd(recipe));
       settings.invalidate?.();
       const paramNames = Object.keys(recipe.params);
       const detail = [
@@ -202,6 +208,7 @@ function saveTool(hub, settings) {
         recipe.origin ? `origin ${recipe.origin}` : 'no origin lock',
         paramNames.length > 0 ? `params ${paramNames.join(', ')}` : 'no params',
         recipe.needsReview ? 'some targets need review' : '',
+        keepSop ? 'kept the hand-written SKILL.md' : '',
       ]
         .filter(Boolean)
         .join(' · ');
@@ -232,17 +239,20 @@ function listTool(settings) {
     async execute() {
       const skills = await listSkills(skillRoots(settings));
       if (skills.length === 0) return { ok: true, text: 'No browser skills are saved yet.', data: { skills: [] } };
-      const lines = skills.map(skill => {
+      // How much each skill has learned from its own failures: one line per skill, right where the model picks one.
+      const learned = await Promise.all(skills.map(skill => readKnowledge(settings, skill.name)));
+      const lines = skills.map((skill, index) => {
         const bits = [`- ${skill.name}`, `${skill.recipe?.steps?.length ?? 0} steps`];
         if (skill.recipe?.origin) bits.push(skill.recipe.origin);
         if (skill.description) bits.push(skill.description);
+        if (learned[index].length > 0) bits.push(`learned ${learned[index].length}`);
         return bits.join(' · ');
       });
       return {
         ok: true,
         text: `Browser skills (saved in ${settings.skillsDir}${settings.builtinSkillsDir ? `, shipped in ${settings.builtinSkillsDir}` : ''}):\n${lines.join('\n')}`,
         data: jsonSafe({
-          skills: skills.map(skill => ({
+          skills: skills.map((skill, index) => ({
             name: skill.name,
             description: skill.description,
             whenToUse: skill.whenToUse,
@@ -250,6 +260,7 @@ function listTool(settings) {
             version: skill.recipe?.version,
             steps: skill.recipe?.steps?.length,
             origin: skill.recipe?.origin,
+            learned: learned[index].length,
             modelInvocable: skill.recipe?.modelInvocable !== false,
           })),
         }),
@@ -271,10 +282,12 @@ function showTool(settings) {
     output: RICH_OUTPUT,
     async execute(args) {
       const skill = await readSkill(skillRoots(settings), args.name);
+      const notes = learnedSummary(await readKnowledge(settings, skill.name));
+      const learned = notes.length > 0 ? `\nLearned from earlier failures:\n${notes.join('\n')}\n` : '';
       return {
         ok: true,
-        text: `${skill.content}\nrecipe.json:\n${JSON.stringify(skill.recipe, null, 2)}`,
-        data: jsonSafe({ name: skill.name, dir: skill.dir, recipe: skill.recipe }),
+        text: `${skill.content}${learned}\nrecipe.json:\n${JSON.stringify(skill.recipe, null, 2)}`,
+        data: jsonSafe({ name: skill.name, dir: skill.dir, recipe: skill.recipe, learned: notes }),
       };
     },
   };
@@ -301,6 +314,21 @@ function runTool(hub, settings) {
           description: 'Pause between steps so the replay is visible.',
         },
         quiet: { type: 'boolean', description: 'Do not write step notes to the side panel.' },
+        batch: {
+          type: 'array',
+          description:
+            'Run the skill once per entry, in order, and report all of them: [{ params }, …]. The first write asks the user; "allow for this task" covers the rest. A failing item does not stop the batch; a decline or a step that needs a person does.',
+          items: { type: 'object', additionalProperties: {} },
+        },
+        from: {
+          type: 'string',
+          description:
+            'Resume at this step id, skipping the steps before it: the page is where the failed run left it. Writes still ask again.',
+        },
+        until: {
+          type: 'string',
+          description: 'Stop after this step id and leave the page as it is, for debugging.',
+        },
       },
       required: ['name'],
       additionalProperties: false,
@@ -310,15 +338,27 @@ function runTool(hub, settings) {
       const skill = await readSkill(skillRoots(settings), args.name);
       const clientId = exec.agent?.id ?? 'dsh:unscoped';
       hub.registerClient({ clientId, kind: 'dsh', sessionId: exec.agent?.id ?? null });
-      return jsonSafe(
-        await runSkill(hub, clientId, settings, skill, {
-          params: args.params,
-          dryRun: args.dryRun,
-          stepDelayMs: args.stepDelayMs,
-          quiet: args.quiet,
-          signal: exec.signal,
-        }),
-      );
+      const options = {
+        params: args.params,
+        dryRun: args.dryRun,
+        stepDelayMs: args.stepDelayMs,
+        quiet: args.quiet,
+        from: args.from,
+        until: args.until,
+        signal: exec.signal,
+      };
+      const result =
+        Array.isArray(args.batch) && args.batch.length > 0
+          ? await runSkillBatch(hub, clientId, settings, skill, { ...options, batch: args.batch })
+          : await runSkill(hub, clientId, settings, skill, options);
+      // The prompt says where the last run stopped, so taking over does not start by asking the model to remember.
+      hub.rememberRun?.(clientId, {
+        name: skill.name,
+        outcome: result.data?.outcome,
+        ...(result.data?.failedStep ? { failedStep: result.data.failedStep } : {}),
+        ...(result.data?.failure?.code ? { code: result.data.failure.code } : {}),
+      });
+      return jsonSafe(result);
     },
   };
 }

@@ -58,12 +58,28 @@ function targetFromArgs(target) {
   const copy = {};
   if (typeof target.role === 'string') copy.role = target.role;
   if (typeof target.name === 'string') copy.name = target.name;
-  if (typeof target.ref === 'string') copy.ref = target.ref;
   if (Number.isInteger(target.nth)) copy.nth = target.nth;
-  if (typeof target.within === 'string') copy.within = target.within;
-  if (copy.role === undefined && copy.ref === undefined) return undefined;
-  if (copy.ref !== undefined && copy.role === undefined) copy.needsReview = true;
+  // A ref, and a `within` (which is a ref), belong to the document they were seen in. They never reach a recipe; the
+  // step keeps role and name, and is flagged for review when that is not enough.
+  if (typeof target.ref === 'string' || typeof target.within === 'string') copy.needsReview = true;
+  if (copy.name === undefined) return undefined;
   return copy;
+}
+
+/** A parameter name from a field's accessible name, when that name is words rather than a label in another script. */
+function inferParamName(label) {
+  const words = String(label ?? '')
+    .trim()
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+  if (words.length === 0) return undefined;
+  const camel =
+    words[0].toLowerCase() +
+    words
+      .slice(1)
+      .map(word => word[0].toUpperCase() + word.slice(1).toLowerCase())
+      .join('');
+  return /^[a-z][a-zA-Z0-9]{0,31}$/.test(camel) ? camel : undefined;
 }
 
 function pick(source, keys) {
@@ -271,6 +287,37 @@ export function captureTurn(session, options = {}) {
   if (steps.length === 0) {
     throw new Error(`No browser actions were captured. ${notes.join(' ')}`.trim());
   }
+  const limit = Number(options.maxSteps);
+  if (Number.isFinite(limit) && limit > 0 && steps.length > limit) {
+    throw new Error(
+      `This run has ${steps.length} actions and the limit is ${limit}. Split it into two skills, or record the last ${limit} with last: ${limit}.`,
+    );
+  }
+
+  // A field's own name is the parameter name a person would have chosen: «Order number» filed with Q-1001 becomes
+  // params.orderNumber, and the step keeps {{orderNumber}}. Only when the caller named no params of its own, and only
+  // for names that are words — a label in another script would not survive placeholder substitution.
+  if (Object.keys(params).length === 0) {
+    const inferred = {};
+    for (const step of steps) {
+      if (step.tool !== 'set' && step.tool !== 'type') continue;
+      const value = step.tool === 'set' ? step.args?.value : step.args?.text;
+      if (typeof value !== 'string' || value.trim() === '') continue;
+      const name = inferParamName(step.target?.name);
+      if (!name || inferred[name] !== undefined) continue;
+      inferred[name] = value;
+    }
+    if (Object.keys(inferred).length > 0) {
+      for (const step of steps) {
+        for (const [name, value] of Object.entries(inferred)) {
+          if (step.tool === 'set' && step.args?.value === value) step.args.value = `{{${name}}}`;
+          if (step.tool === 'type' && step.args?.text === value) step.args.text = `{{${name}}}`;
+        }
+      }
+      Object.assign(params, inferred);
+      notes.push(`Inferred params from the fields: ${Object.keys(inferred).join(', ')}.`);
+    }
+  }
 
   // A retry or a correction often leaves two navigations in a row; only the last one describes the run.
   let capturedSteps = steps;
@@ -289,6 +336,23 @@ export function captureTurn(session, options = {}) {
     step.id = `s${index + 1}`;
   });
 
+  // A fixed wait is a bet on how long the page needs. When the next step names a target, the wait can say what it was
+  // waiting for instead — the thing it is about to act on — which holds on a slow page and does not cost time on a
+  // fast one. A fixed wait nothing follows stays as it is, and is called out.
+  let fixedWaits = 0;
+  for (let index = 0; index < collapsed.length; index += 1) {
+    const step = collapsed[index];
+    if (step.tool !== 'wait' || step.args?.ms === undefined) continue;
+    if (step.args.text !== undefined || step.args.url !== undefined || step.args.state !== undefined) continue;
+    const next = collapsed[index + 1];
+    if (next?.target) {
+      step.args = { state: 'visible' };
+      step.target = { ...next.target };
+      continue;
+    }
+    fixedWaits += 1;
+    notes.push(`Step ${step.id} waits a fixed ${step.args.ms} ms; it cannot tell whether the page was ready.`);
+  }
   const asserts = [];
   for (const step of collapsed) {
     if (step.tool !== 'wait') continue;

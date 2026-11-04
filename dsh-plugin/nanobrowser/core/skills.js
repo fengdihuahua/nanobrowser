@@ -3,7 +3,7 @@
 // them. Nothing here talks to Chrome.
 
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 export const SKILL_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
@@ -73,8 +73,176 @@ export function describeStep(step) {
   }
 }
 
+/** The heading a hand-written SOP uses for what to do when a step fails. Anything else in that section is ignored. */
+const FAIL_SECTION = /^##\s+when it fails\s*$/im;
+
+/**
+ * The bullets of a SKILL.md's "When it fails" section that apply to one failure: a bullet counts when it names the
+ * failure code or the step id in backticks. Three at most, in the order the author wrote them. No section, no match:
+ * nothing is invented.
+ */
+export function sopNotes(content, { code, stepId } = {}) {
+  const text = String(content ?? '');
+  const found = FAIL_SECTION.exec(text);
+  if (!found) return [];
+  const rest = text.slice(found.index + found[0].length);
+  const end = rest.search(/^##\s+/m);
+  const section = end === -1 ? rest : rest.slice(0, end);
+  const bullets = section
+    .split(/\n(?=\s*[-*]\s)/)
+    .map(chunk => chunk.trim())
+    .filter(chunk => /^[-*]\s/.test(chunk));
+  const wanted = [code, stepId].filter(value => typeof value === 'string' && value !== '');
+  return bullets
+    .filter(bullet => wanted.some(value => bullet.includes(`\`${value}\``)))
+    .slice(0, 3)
+    .map(bullet => bullet.replace(/\s*\n\s*/g, ' '));
+}
+
+/** How many notes one skill keeps, how long one field may be, and how long one rendered line may be. */
+const MAX_LEARNED_NOTES = 12;
+const MAX_LEARNED_FIELD = 240;
+const MAX_LEARNED_LINE = 260;
+
+/**
+ * What a skill learned from its own failures. The notes live in the user's skills directory, never inside a skill: a
+ * shipped skill is read-only, but it can still learn. Nothing is read or written when no directory is configured, which
+ * is what a test with a bare settings object gets.
+ */
+function knowledgePath(settings, name) {
+  const root = String(settings?.skillsDir ?? '');
+  if (!root || !name) return '';
+  try {
+    return join(root, '.knowledge', `${normalizeName(name)}.json`);
+  } catch {
+    return '';
+  }
+}
+
+function boundField(value) {
+  const text = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.length > MAX_LEARNED_FIELD ? `${text.slice(0, MAX_LEARNED_FIELD - 1)}…` : text;
+}
+
+async function readNotes(file) {
+  try {
+    const data = JSON.parse(await readFile(file, 'utf8'));
+    return Array.isArray(data?.notes) ? data.notes.filter(note => note && typeof note.code === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** The notes this skill learned: `[{code, stepId?, step?, message?, hint?, url?, count, firstSeen, lastSeen}]`. */
+export async function readKnowledge(settings, name) {
+  const file = knowledgePath(settings, name);
+  return file ? readNotes(file) : [];
+}
+
+/** Writes in flight per file: two runs of one skill must not read, change and write the same file side by side. */
+const learning = new Map();
+
+/**
+ * Records a failure against a skill, so the next run of it can say what went wrong last time. One note per failure
+ * kind (its code and step), so a recipe that fails the same way every day keeps a count instead of a pile of lines.
+ * Returns whether anything was written; a failed write never fails the run that produced it.
+ */
+export async function recordFailure(settings, name, failure, tab) {
+  const file = knowledgePath(settings, name);
+  if (!file || !failure?.code) return false;
+  const previous = learning.get(file) ?? Promise.resolve();
+  const next = previous.then(() => writeNote(file, name, failure, tab)).catch(() => false);
+  learning.set(file, next);
+  return next;
+}
+
+async function writeNote(file, name, failure, tab) {
+  await mkdir(dirname(file), { recursive: true });
+  const notes = await readNotes(file);
+  const stepId = failure.stepId === undefined || failure.stepId === null ? undefined : String(failure.stepId);
+  const key = `${failure.code}|${stepId ?? ''}`;
+  const now = new Date().toISOString();
+  const at = notes.findIndex(note => `${note.code}|${note.stepId ?? ''}` === key);
+  const before = at >= 0 ? notes[at] : undefined;
+  // A later failure may know less than the first one (no step text, no tab): what is known is kept, not erased.
+  const note = { code: String(failure.code), ...(stepId ? { stepId } : {}) };
+  for (const field of ['step', 'message', 'hint']) {
+    const value = boundField(failure[field]) || boundField(before?.[field]);
+    if (value) note[field] = value;
+  }
+  const url = String(tab?.url ?? before?.url ?? '');
+  if (url) note.url = url;
+  if (before) {
+    notes[at] = {
+      ...note,
+      count: Math.min(999, Number(before.count ?? 1) + 1),
+      firstSeen: before.firstSeen ?? now,
+      lastSeen: now,
+    };
+  } else {
+    notes.push({ ...note, count: 1, firstSeen: now, lastSeen: now });
+  }
+  // The newest notes, bounded: this says what fails now, not what failed a month ago.
+  notes.sort((a, b) => String(b.lastSeen ?? '').localeCompare(String(a.lastSeen ?? '')));
+  const data = { skill: name, notes: notes.slice(0, MAX_LEARNED_NOTES) };
+  await writeFile(file, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+  return true;
+}
+
+/** One learned note as a line: what failed, how often, and where it was last seen. */
+function learnedLine(note) {
+  const times = Number(note.count ?? 1);
+  const head = [`seen ${times}× before:`, `\`${note.code}\``];
+  if (note.stepId) head.push(`at step \`${note.stepId}\``);
+  const what = [note.step, note.message].filter(Boolean).join(' → ');
+  const tail = [note.url ? `on ${note.url}` : '', String(note.lastSeen ?? '').slice(0, 10)].filter(Boolean).join(' · ');
+  const line = `- ${head.join(' ')}${what ? `: ${what}` : ''}${tail ? ` (${tail})` : ''}`;
+  return line.length > MAX_LEARNED_LINE ? `${line.slice(0, MAX_LEARNED_LINE - 1)}…` : line;
+}
+
+/**
+ * The learned notes that apply to one failure: the same matching as `sopNotes` (the code or the step id), most frequent
+ * first, three at most, and only for what a hand-written SOP does not already say.
+ */
+export function learnedNotes(notes, { code, stepId } = {}) {
+  const wanted = [code, stepId].filter(value => typeof value === 'string' && value !== '');
+  if (wanted.length === 0) return [];
+  return (Array.isArray(notes) ? notes : [])
+    .filter(note => note && wanted.some(value => note.code === value || note.stepId === value))
+    .sort(
+      (a, b) =>
+        Number(b.count ?? 0) - Number(a.count ?? 0) || String(b.lastSeen ?? '').localeCompare(String(a.lastSeen ?? '')),
+    )
+    .slice(0, 3)
+    .map(learnedLine);
+}
+
+/** Every note a skill has learned, for a tool that shows the skill rather than a failure. */
+export function learnedSummary(notes) {
+  return (Array.isArray(notes) ? notes : []).map(note => {
+    const head = `${note.code}${note.stepId ? ` at step ${note.stepId}` : ''} · ${Number(note.count ?? 1)}×`;
+    const what = [note.step, note.message].filter(Boolean).join(' — ');
+    const line = `${head}${what ? ` · ${what}` : ''}`;
+    return line.length > MAX_LEARNED_LINE ? `${line.slice(0, MAX_LEARNED_LINE - 1)}…` : line;
+  });
+}
+
+/** Marks a SKILL.md the recorder wrote. Anything else in that file is the user's, and is never replaced. */
+export const GENERATED_SOP = '<!-- generated by browser_skill_save -->';
+
+export function isGeneratedSop(content) {
+  return String(content ?? '').includes(GENERATED_SOP);
+}
+
+/**
+ * The SKILL.md the recorder writes. It is generated, and marked as such (`GENERATED_SOP`): `browser_skill_save` only
+ * ever replaces a file carrying that mark, so a hand-written SOP in the same directory survives a later save. A
+ * hand-written SOP can say anything the recipe cannot — a `## When it fails` section is read back by the runner.
+ */
 export function renderSkillMd(recipe) {
-  const lines = ['---', `name: ${recipe.name}`, `description: ${recipe.description}`];
+  const lines = [GENERATED_SOP, '---', `name: ${recipe.name}`, `description: ${recipe.description}`];
   if (recipe.whenToUse) lines.push(`whenToUse: ${recipe.whenToUse}`);
   lines.push('---', '', `# ${recipe.name}`, '', recipe.description, '');
   if (recipe.origin) lines.push(`Origin: ${recipe.origin}`, '');
@@ -104,6 +272,7 @@ export function renderSkillMd(recipe) {
   );
   if (recipe.origin) lines.push(`- This skill only runs on ${recipe.origin}.`);
   lines.push(
+    '- Run this with `browser_skill_run`, not by hand: the replay is the record, and doing it by hand is a different run.',
     '- Values are recorded literally. A secret is never stored; leave that step to the user.',
     '- A failed step stops the replay; do not retry a write blindly.',
     '',
@@ -191,7 +360,9 @@ export async function listSkills(root) {
       if (!entry.isDirectory() || found.has(entry.name)) continue;
       try {
         const skill = await readSkill(base, entry.name);
-        if (!found.has(skill.name)) found.set(entry.name, skill);
+        // Keyed by the recipe's own name: a directory named differently from the skill inside it is the same skill, and
+        // the first root that has it wins.
+        if (!found.has(skill.name)) found.set(skill.name, skill);
       } catch {
         // A half-written or hand-edited directory is left out instead of breaking the catalog.
       }
@@ -200,10 +371,14 @@ export async function listSkills(root) {
   return [...found.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/**
+ * Writes a skill. `content` is the SKILL.md to write; pass null to keep the one already on disk, which is how a
+ * hand-written SOP survives a recorder saving a recipe of the same name.
+ */
 export async function writeSkill(root, recipe, content = renderSkillMd(recipe)) {
   const dir = join(root, recipe.name);
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, 'recipe.json'), `${JSON.stringify(recipe, null, 2)}\n`, 'utf8');
-  await writeFile(join(dir, 'SKILL.md'), content, 'utf8');
+  if (content !== null) await writeFile(join(dir, 'SKILL.md'), content, 'utf8');
   return dir;
 }
