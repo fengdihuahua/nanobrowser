@@ -15,7 +15,11 @@ coverage
 .vscode
 .cursor
 .nanobrowser
+# A skill's learned notes, if a skills directory is ever pointed inside the checkout
+.knowledge/
 # Measurement runs write raw data here
 fixtures/.results
+*.log
+*.tsbuildinfo
 # The packaged DSH app, extracted only to read its plugin and session APIs
 .dsh-app

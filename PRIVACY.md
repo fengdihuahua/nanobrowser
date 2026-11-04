@@ -28,6 +28,12 @@ In `chrome.storage.local`, and nowhere else:
 There is no conversation history, no saved file, no attachment and no key in the extension. Closing it loses nothing
 that belongs to you; the conversation lives in DSH.
 
+## What it asks Chrome for
+
+The extension asks Chrome only for what its work needs: reading and driving the page of a task, the side panel, the four
+settings above, being told about a navigation, staying connected to the local Hub, drawing the page border, and naming
+the group of tabs each task gets. Nothing any permission gives it is sent anywhere; it is all used on your machine.
+
 ## What leaves the browser
 
 The extension itself sends nothing anywhere. It answers the Hub running on your own machine (`127.0.0.1`), and the Hub

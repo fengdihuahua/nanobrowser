@@ -33,12 +33,19 @@ Qoder / Claude Code / Cursor ──► MCP adapter ──┘        (chrome.debu
 - **A person in the loop.** A write opens a card with the target and the reason; a refusal sends nothing. Secret fields
   are masked wherever page text is returned.
 - **One sight line.** The side panel is the live DSH session: history, tool trace, approvals, "waiting for you" cards and
-  Stop, in the browser you are working in.
+  Stop, in the browser you are working in. A task's pages are chips above it, and the same pages are one Chrome tab
+  group named after the task, so a debugging session is visible in the tab strip too.
 - **Skills.** A successful task can be saved as a parameterised, origin-locked recipe and replayed later. Your skills
   live in `~/.dsh/skills/browser`, so they follow you from project to project; the ones shipped here are read-only.
+- **Skills that remember.** A failed replay records what failed (code, step, the page's own words, how often), and the
+  next failure of that skill brings it back. The record is a plain JSON file next to your skills.
+- **A control plane in DSH.** The left sidebar shows the Hub, the live sessions and each skill's parameters — run one
+  with a dry run, or read its files — plus an audit of every call you can filter by session or tab and export as CSV.
 - **Any MCP client.** Qoder, Claude Code, Cursor and friends get the same hands through one stdio adapter.
 
 ## 🚀 Install
+
+The full page, including the MCP-only path and the troubleshooting table, is [docs/runbook.md](docs/runbook.md).
 
 1. **Build the extension.**
 
@@ -69,8 +76,8 @@ Qoder / Claude Code / Cursor ──► MCP adapter ──┘        (chrome.debu
 
    It registers as a client, opens the fixture page, snapshots it, reads console and network, and hands the tab back.
 
-The full sequence, including the ports and the token, is in [docs/dsh-plugin-migration.md](docs/dsh-plugin-migration.md)
-and [docs/dsh-plugin-new-machine-runbook.md](docs/dsh-plugin-new-machine-runbook.md).
+The full sequence, including the ports, the token and what to check when it does not work, is in
+[docs/runbook.md](docs/runbook.md).
 
 ## 🛡️ What the agent may do
 
@@ -89,18 +96,20 @@ says yes, and no agent call can turn that off.
 | --- | --- |
 | `src/browser-control/` | The layer: observe, act, report. Deterministic, no model. |
 | `src/extension/` | The worker: hosts the layer, takes the Hub's calls, opens the cards |
-| `src/side-panel/` | The side panel: the live DSH session |
+| `src/side-panel/` | The side panel: the live DSH session, its page chips and the task's tab group |
 | `dsh-plugin/nanobrowser/` | The DSH plugin: Hub, tools, leases, approvals, chat, skills |
-| `dsh-plugin/nanobrowser-ui/` | The DSH left-sidebar page |
-| `docs/` | The goal, the spec, the migration list and the runbooks |
+| `dsh-plugin/nanobrowser-ui/` | The DSH left-sidebar page: Hub status, skills, the audit log |
+| `docs/` | The live pages: install, design, reference, MCP, roadmap |
 | `skills/browser/` | The shipped Browser Skills |
 
 ## 📚 Docs
 
-- [Getting it working on someone else's machine](docs/install-for-others.md) — the short version, three paths
-- [Goal, users and status](docs/dsh-plugin-goal.md)
-- [Full specification](docs/dsh-plugin-spec.md)
-- [Moving the setup to another machine](docs/dsh-plugin-migration.md) · [New-machine runbook](docs/dsh-plugin-new-machine-runbook.md)
+- [Install, run and troubleshoot](docs/runbook.md) — the one page: three paths, what to check, what breaks
+- [Design](docs/design.md) — why it is built this way: needs, interfaces, the three gears
+- [Reference](docs/reference.md) — tools, leases, config, error codes, what the code actually does today
+- [MCP front end](docs/mcp.md) — what another agent can do through it, and what it deliberately cannot
+- [Roadmap](docs/roadmap.md) — the single list of what is left
+- [Decisions](docs/adr/) — the two that are settled
 - [Privacy](PRIVACY.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 ## 📄 Licence

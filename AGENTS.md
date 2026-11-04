@@ -17,14 +17,14 @@ through the Hub's standard MCP adapter (`dsh-plugin/nanobrowser/mcp/adapter.mjs`
 the only thing that talks to the extension.
 
 What follows from that, and is now true of the tree: no agent loop, no model layer, no API keys, no provider settings,
-no voice model, no conversation store and no migration of the old version's data. The plan, the user stories and the
-status are in `docs/dsh-plugin-goal.md`.
+no voice model, no conversation store and no migration of the old version's data. The design is in `docs/design.md`,
+the current behaviour in `docs/reference.md`, and the list of what is left in `docs/roadmap.md`.
 
 ## Scope
 
 - **Built and maintained:** the browser control layer, a simple Chrome extension for testing it by hand (the test panel), fixture pages, unit tests, and the automated checks.
-- **Built and maintained:** the extension: the browser control layer with its approval cards, the side panel that mirrors the live DSH session, the page border, site rules and three UI languages (English, Simplified Chinese, Traditional Chinese). It has no model of its own: the model, the conversation and the loop belong to DSH or to the MCP client above it.
-- **Not in the first release:** for example skills the model loads, site notes, saved memory, the in-page Stop pill, PDF and Office parsing, the text tool-call parser, scheduled tasks. Do not add any of these unless asked.
+- **Built and maintained:** the extension: the browser control layer with its approval cards, the side panel that mirrors the live DSH session (with a chip for each page of the task and one tab group per task), the page border, site rules and three UI languages (English, Simplified Chinese, Traditional Chinese). It has no model of its own: the model, the conversation and the loop belong to DSH or to the MCP client above it.
+- **Not in the first release (of the extension):** site notes, saved memory, the in-page Stop pill, PDF and Office parsing, the text tool-call parser, scheduled tasks. Browser Skills live in the plugin, not the extension, and are shipped. Do not add any of these unless asked.
 - **Not in scope:** a second brain in the extension (an agent loop, a model layer, keys, provider settings), a second MCP front end, browsers other than Chrome and Edge, a planner and navigator design, several cooperating agents.
 
 ## Fixed design constraints
@@ -87,12 +87,12 @@ For the agent and the extension:
 The extension:
 
 - `src/store/` - Settings and site rules in `chrome.storage.local`, with a cache and listeners
-- `src/extension/` - Wiring in the worker: the layer, the Hub client, the approval cards the layer's prompts open, the page border
+- `src/extension/` - Wiring in the worker: the layer, the Hub client and the bridge client (a `WXT_BRIDGE` build only), the approval cards the layer's prompts open, the page border
 - `src/ui/` - Shared components, theme, the i18n runtime and the catalogues (`locales/`: English, Simplified and Traditional Chinese)
-- `src/side-panel/` - The side panel: the live DSH session and its approvals
+- `src/side-panel/` - The side panel: the live DSH session, its approvals, the task's page chips and its tab group
 - `src/options/` - The settings UI
-- `dsh-plugin/nanobrowser/` - The DSH plugin: Hub, tool surface, leases, approvals, the side-panel chat, skills; `dsh-plugin/nanobrowser-ui/` is the DSH left-sidebar page
-- `docs/` - The goal (`dsh-plugin-goal.md`), the spec (`dsh-plugin-spec.md`), the migration and runbook pages and the bridge notes; `skills/browser/` holds the Browser Skills
+- `dsh-plugin/nanobrowser/` - The DSH plugin: Hub, tool surface, leases, approvals, the side-panel chat, skills (with the `.knowledge` record of their failures); `dsh-plugin/nanobrowser-ui/` is the DSH left-sidebar page: Hub status, skills with parameters and a dry run, the audit log with filters and CSV export
+- `docs/` - The live pages: `runbook.md` (install, verify, troubleshoot), `design.md` (why), `reference.md` (what exists), `mcp.md` (the MCP front end), `mcp-clients.md` (how another agent connects), `roadmap.md` (the single TODO list), `adr/` (settled decisions). Everything else in there is retired: a notice at the top points at these. `skills/browser/` holds the Browser Skills
 
 **Import rules:**
 
@@ -111,6 +111,7 @@ pnpm 10.34.7 is pinned in `package.json` (`packageManager`). If the global `pnpm
 - `pnpm zip` - Build, then pack `dist/` into `dist-zip/nanobrowser-<version>.zip` (source maps left out) for a release or the Chrome Web Store
 - `pnpm type-check` - TypeScript type checking
 - `pnpm lint` - ESLint, including the import rules: the layer's (`src/browser-control/`) and the extension's (Import rules, above)
+- `pnpm docs:check` - Every tool name, config key, `pnpm` script and repo path used in `docs/design.md`, `docs/reference.md`, `docs/mcp.md`, `docs/mcp-clients.md`, `docs/roadmap.md`, `docs/runbook.md` and `docs/adr/` must exist in the code; CI runs it, so a renamed tool fails the build instead of rotting the docs
 - `pnpm test` - Unit tests (Vitest); tests live in `__tests__/` folders under `src/`
 - `pnpm prettier` - Format the repository
 - `pnpm fixtures` - Fixture server on port 8787 (localhost, 127.0.0.1 and [::1])
@@ -118,7 +119,7 @@ pnpm 10.34.7 is pinned in `package.json` (`packageManager`). If the global `pnpm
 - `pnpm clean-chrome` - Ask, then remove the whole `~/.cache/puppeteer` (shared with other projects that use Puppeteer; they download their browser again)
 - `pnpm autorun <check>[,<check>...] [--args <json>] [--scale <n>]` - Build an autorun copy of the extension into `.output/autorun`, start the fixture server and Chrome for Testing (headless, plain process, no external CDP, `--use-mock-keychain`), run the named checks in the extension and print the reports. `--scale 2` runs Chrome with that device scale factor, as on a Retina display. The product's panel, model and eval checks went with the product; the layer's checks remain. Results go to `fixtures/.results/` (ignored by git)
 
-CI (`.github/workflows/ci.yml`) runs `prettier --check`, `pnpm lint`, `pnpm type-check`, `pnpm test` and `pnpm build` on every push and pull request, on Ubuntu with the newest Node 24 and the pinned pnpm. Its actions are pinned to a commit, and its token can only read. The browser checks (`pnpm autorun`) are not in CI: they are run by hand, before a merge that touches what they cover.
+CI (`.github/workflows/ci.yml`) runs `prettier --check`, `pnpm lint`, `pnpm docs:check`, `pnpm type-check`, `pnpm test`, the DSH plugin's tests (`node --test "dsh-plugin/nanobrowser/test/*.test.mjs"`, no browser needed) and `pnpm build` on every push and pull request, on Ubuntu with the newest Node 24 and the pinned pnpm. Its actions are pinned to a commit, and its token can only read. The browser checks (`pnpm autorun`) are not in CI: they are run by hand, before a merge that touches what they cover.
 
 The extension's dependencies: `puppeteer-core`, `react` with `react-dom`, `react-markdown` with `rehype-sanitize` and `remark-gfm`, and `zod`. The AI SDK, `idb`, `fake-indexeddb` and `@radix-ui/react-dialog` left with the model layer and the old panel. Any other dependency is asked for first. Settings → About lists them with their licences, and a unit test keeps that list equal to `package.json`.
 

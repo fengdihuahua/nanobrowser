@@ -27,8 +27,11 @@ It is hands and eyes, not a brain. The agent runs in DeepSeek Harness (DSH) or i
 - Your real logins. No second profile, no re-login, no separate browser.
 - A person in the loop. A write opens a card with the page and the reason; a refusal sends nothing.
 - One sight line. The side panel mirrors the live DSH session: history, tool trace, approvals and Stop, right where you
-  are working.
-- Skills. A successful task can be saved as a reusable, origin-locked recipe and replayed later.
+  are working. A task's pages are chips above it and one named tab group in the tab strip.
+- Skills. A successful task can be saved as a reusable, origin-locked recipe and replayed later; a failed replay leaves
+  a note about what failed, and the next run of that skill brings it back.
+- A control plane. The DSH left sidebar shows the hub, your skills with their parameters (run one, or rehearse it with a
+  dry run) and an audit of every call you can filter and export.
 - Any MCP client. One adapter gives Qoder, Claude Code and Cursor the same hands.
 
 **What you need**
@@ -62,6 +65,7 @@ Chrome asks for a reason for each permission on the listing and in review.
 | `webNavigation` | To notice a navigation so the layer drops stale element references instead of acting on an old page. |
 | `alarms` | Keeps the connection to the local hub alive while the service worker sleeps. |
 | `scripting` | Draws the page border on the tab a working session is acting on (one setting turns it off). |
+| `tabGroups` | Names the group of tabs each task gets, so the pages of one task are easy to find in the tab strip. Grouping itself needs no permission; naming the group needs this one. |
 | Host permission: all sites | The agent works whichever site you point it at. Nothing is read until a session is attached to a tab and the agent asks. |
 
 No optional permissions are requested. Nanobrowser asks for nothing else.

@@ -17,6 +17,7 @@
     "test": "vitest run",
     "type-check": "wxt prepare && tsc --noEmit",
     "lint": "eslint . --cache --cache-location node_modules/.cache/.eslintcache",
+    "docs:check": "node scripts/docs-check.mjs",
     "prettier": "prettier . --write --cache --cache-location node_modules/.cache/.prettiercache",
     "fixtures": "node fixtures/server.mjs",
     "autorun": "node fixtures/autorun.mjs",

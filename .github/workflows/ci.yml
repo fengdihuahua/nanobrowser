@@ -1,4 +1,4 @@
-# Checks every push and pull request: formatting, lint, types, unit tests and a build.
+# Checks every push and pull request: formatting, lint, types, unit tests, the plugin's tests and a build.
 # The browser checks (pnpm autorun) and the checks that call real models are run by hand before a release.
 name: CI
 
@@ -34,6 +34,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prettier --check .
       - run: pnpm lint
+      - run: pnpm docs:check
       - run: pnpm type-check
       - run: pnpm test
+      # The DSH plugin's tests are plain node --test: no browser, no dependencies beyond Node itself.
+      - run: node --test "dsh-plugin/nanobrowser/test/*.test.mjs"
       - run: pnpm build

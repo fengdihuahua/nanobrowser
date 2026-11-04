@@ -25,7 +25,8 @@ browser task into a reusable **Browser Skill**.
   - successful waits become checks;
   - parameters via `params: { name: literal }` in `browser_skill_save`;
   - origin lock, dry run, per-step progress through `say`, stop on the first failed step or check;
-  - stored as `skills/browser/<name>/SKILL.md` + `recipe.json`;
+  - stored in `~/.dsh/skills/browser/<name>/SKILL.md` + `recipe.json` (the user's, so every workspace sees them); the
+    ones shipped beside the plugin are read from `<repo>/skills/browser`;
   - registered through `ctx.skills.registerProvider`, so DSH lists them in its skill catalog.
 - `screenshot` becomes durable image content when the active model accepts images.
 - A thin MCP adapter (`mcp/adapter.mjs`) speaks the same Hub, so Qoder / Claude Code / Cursor can use the same
@@ -139,7 +140,7 @@ Example flow:
   "last": 6, "params": { "name": "Ada Lovelace", "email": "ada@example.test" } }
 ```
 
-3. The skill is written to `skills/browser/fill-signup/` and appears in the DSH skill catalog.
+3. The skill is written to `~/.dsh/skills/browser/fill-signup/` and appears in the DSH skill catalog.
 4. Run it:
 
 ```json
@@ -175,7 +176,7 @@ first when both are used, so the plugin owns the Hub.
 - Extension protocol v2 (`clientId`, per-client session/tab, events) and true multi-client tab isolation.
 - Audit timeline and version history UI; `nanobrowser_audit` and the sidebar's recent calls are the first version.
 
-See `../../docs/dsh-plugin-spec.md` for the complete target and acceptance list.
+See `../../docs/design.md` for why it is built this way, `../../docs/reference.md` for the current behaviour, and `../../docs/roadmap.md` for what is left.
 
 ## Tests
 
