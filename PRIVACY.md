@@ -2,14 +2,13 @@
 
 ## Introduction
 
-[Nanobrowser](https://github.com/nanobrowser/nanobrowser) is an open-source browser-control extension for Chrome and
-Edge. It lets an agent you run elsewhere — DSH, or any MCP client — work the tabs you are already signed into. This
+Nanobrowser is a browser-control extension for Chrome and Edge. It lets an agent you run elsewhere — DSH, or any MCP client — work the tabs you are already signed into. This
 policy explains what leaves your browser because of the extension, and what does not.
 
 ## Open source
 
-Nanobrowser is licensed under the Apache License 2.0. All the source code is in the
-[GitHub repository](https://github.com/nanobrowser/nanobrowser), so everything below can be checked against it.
+Nanobrowser is licensed under the Apache License 2.0. The source code is in the copy you build from, so everything
+below can be checked against it.
 
 ## Short version
 
@@ -62,4 +61,4 @@ profile (`~/.dsh/...`) and are removed there.
 
 ## Contact
 
-Open an issue in the [GitHub repository](https://github.com/nanobrowser/nanobrowser/issues).
+Tell whoever maintains your copy.

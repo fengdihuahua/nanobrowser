@@ -4,10 +4,6 @@
   "private": true,
   "description": "AI web automation Chrome extension",
   "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nanobrowser/nanobrowser.git"
-  },
   "type": "module",
   "scripts": {
     "postinstall": "wxt prepare",

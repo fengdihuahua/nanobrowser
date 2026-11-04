@@ -1,14 +1,7 @@
 <h1 align="center">
-    <img src="https://github.com/user-attachments/assets/294f9cdc-38ba-4cdc-beff-82fe78c9a023" width="100%" alt="Nanobrowser" /><br>
+    <img src="public/icon-128.png" width="96" alt="Nanobrowser" /><br>
+    Nanobrowser
 </h1>
-
-<div align="center">
-
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/nanobrowser)
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/NN3ABHggMK)
-[![Sponsor](https://img.shields.io/badge/Sponsor-ff69b4?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/alexchenzl)
-
-</div>
 
 ## 🌐 What this is
 
@@ -109,7 +102,7 @@ says yes, and no agent call can turn that off.
 - [Reference](docs/reference.md) — tools, leases, config, error codes, what the code actually does today
 - [MCP front end](docs/mcp.md) — what another agent can do through it, and what it deliberately cannot
 - [Roadmap](docs/roadmap.md) — the single list of what is left
-- [Decisions](docs/adr/) — the two that are settled
+- [Decisions](docs/adr/) — the decisions that are settled
 - [Privacy](PRIVACY.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
 
 ## 📄 Licence

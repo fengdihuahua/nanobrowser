@@ -49,8 +49,8 @@ or an MCP client pointed at the adapter. Without one of them the extension has n
 
 **Open source**
 
-Apache License 2.0. The code is at https://github.com/nanobrowser/nanobrowser, and PRIVACY.md says exactly what leaves
-the browser.
+Apache License 2.0. The source is in the repository this build comes from, and PRIVACY.md says exactly what
+leaves the browser.
 
 ## Permission justifications
 

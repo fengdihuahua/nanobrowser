@@ -46,7 +46,7 @@ WXT_BRIDGE=1 pnpm zip         # 带桥接；产物同名，按需重命名
 ### B. 从源码构建
 
 ```bash
-git clone https://github.com/nanobrowser/nanobrowser
+git clone <你的仓库地址>
 cd nanobrowser
 pnpm install
 WXT_BRIDGE=1 pnpm build      # 没有这个标志，worker 不会去轮询 Hub
