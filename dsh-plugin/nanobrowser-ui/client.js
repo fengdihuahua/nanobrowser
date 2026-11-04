@@ -19,16 +19,24 @@ window.__ModuleLoader__.load({
       hub: 'Browser hub',
       connected: 'Connected',
       disconnected: 'Disconnected',
+      age: '{n}s ago',
+      lastSeen: 'last poll {n}s ago',
       port: 'Port',
       clients: 'Clients',
       leases: 'Leases',
       pending: 'Pending calls',
       sessions: 'Live sessions',
       skills: 'Browser skills',
-      recent: 'Recent browser calls',
+      audit: 'Audit log',
+      allSessions: 'All sessions',
+      allTabs: 'All tabs',
+      filterSession: 'Session',
+      filterTab: 'Tab',
+      filterLimit: 'Calls',
+      export: 'Export CSV',
+      auditEmpty: 'No calls match these filters.',
       noSessions: 'No live sessions.',
       noSkills: 'No saved browser skills.',
-      noRecent: 'No browser calls yet.',
       noLease: 'no tab lease',
       lease: 'tab {tab}',
       steps: '{n} steps',
@@ -41,6 +49,11 @@ window.__ModuleLoader__.load({
       runNeedsLease: 'Attach a tab in a session first.',
       runFailed: 'Run failed',
       runDone: 'Done in {ms} ms',
+      files: 'Files',
+      dryRun: 'Dry run (resolve, do not act)',
+      learned: '{n} learned',
+      detailFailed: 'Could not read the skill',
+      folder: 'Folder',
       loading: 'Loading…',
       offline: 'The Nanobrowser host is not reachable.',
       note: 'Chat and approvals live in the Chrome side panel: open it and click DSH.',
@@ -52,16 +65,24 @@ window.__ModuleLoader__.load({
       hub: '浏览器 Hub',
       connected: '已连接',
       disconnected: '未连接',
+      age: '{n} 秒前',
+      lastSeen: '上次轮询 {n} 秒前',
       port: '端口',
       clients: '客户端',
       leases: '租约',
       pending: '待处理调用',
       sessions: '活动会话',
       skills: '页面技能',
-      recent: '最近浏览器调用',
+      audit: '审计日志',
+      allSessions: '全部会话',
+      allTabs: '全部标签页',
+      filterSession: '会话',
+      filterTab: '标签页',
+      filterLimit: '条数',
+      export: '导出 CSV',
+      auditEmpty: '没有符合条件的调用。',
       noSessions: '没有活动会话。',
       noSkills: '还没有保存的页面技能。',
-      noRecent: '还没有浏览器调用。',
       noLease: '没有标签租约',
       lease: '标签 {tab}',
       steps: '{n} 步',
@@ -74,6 +95,11 @@ window.__ModuleLoader__.load({
       runNeedsLease: '请先在某个会话里 attach 一个标签页。',
       runFailed: '运行失败',
       runDone: '完成，用时 {ms} 毫秒',
+      files: '文件',
+      dryRun: '只预检（只解析，不动页面）',
+      learned: '学到 {n} 条',
+      detailFailed: '读不到这个技能',
+      folder: '目录',
       loading: '加载中…',
       offline: 'Nanobrowser 宿主不可达。',
       note: '聊天和审批在 Chrome 侧边栏：打开它并点击 DSH。',
@@ -187,6 +213,48 @@ window.__ModuleLoader__.load({
         fontFamily: 'inherit',
       },
       runLine: { fontSize: 11, color: 'var(--dsw-alias-label-secondary)', display: 'flex', gap: 6 },
+      link: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        margin: '10px 0 0',
+        fontSize: 12,
+        color: 'var(--dsw-alias-label-secondary)',
+      },
+      filters: { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 8, marginBottom: 8 },
+      filterField: { display: 'grid', gap: 2 },
+      select: {
+        border: '1px solid var(--dsw-alias-border-l1)',
+        background: 'var(--dsw-alias-bg-base)',
+        color: 'var(--dsw-alias-label-primary)',
+        borderRadius: 6,
+        padding: '3px 6px',
+        fontSize: 12,
+        fontFamily: 'inherit',
+        maxWidth: 180,
+      },
+      detail: {
+        marginTop: 8,
+        paddingTop: 8,
+        borderTop: '1px dashed var(--dsw-alias-border-l1)',
+        display: 'grid',
+        gap: 6,
+      },
+      folder: { fontSize: 11, color: 'var(--dsw-alias-label-secondary)', wordBreak: 'break-all' },
+      pre: {
+        margin: 0,
+        maxHeight: 220,
+        overflow: 'auto',
+        padding: '6px 8px',
+        borderRadius: 8,
+        background: 'var(--dsw-alias-bg-base)',
+        fontSize: 11,
+        lineHeight: 1.45,
+        whiteSpace: 'pre-wrap',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+        color: 'var(--dsw-alias-label-secondary)',
+      },
+      check: { display: 'flex', alignItems: 'center', gap: 6 },
       runOk: { color: 'var(--dsw-alias-state-success-primary)' },
       runBad: { color: 'var(--dsw-alias-state-error-primary)' },
       error: { margin: '12px 0 0', fontSize: 12, color: 'var(--dsw-alias-state-error-primary)' },
@@ -223,8 +291,8 @@ window.__ModuleLoader__.load({
       );
     }
 
-    function card(heading, children) {
-      return h('section', { style: styles.card }, h('h2', { style: styles.cardHeading }, heading), children);
+    function card(heading, ...children) {
+      return h('section', { style: styles.card }, h('h2', { style: styles.cardHeading }, heading), ...children);
     }
 
     /** The one thing a call was aimed at, from its bounded arguments. */
@@ -253,10 +321,29 @@ window.__ModuleLoader__.load({
       const [openSkill, setOpenSkill] = React.useState(null);
       const [paramValues, setParamValues] = React.useState({});
       const [runState, setRunState] = React.useState(null);
+      const [dryRuns, setDryRuns] = React.useState({});
+      const [openFiles, setOpenFiles] = React.useState(null);
+      const [files, setFiles] = React.useState(null);
+      const [log, setLog] = React.useState({ rows: [], error: null });
+      const [filter, setFilter] = React.useState({ session: '', tab: '', limit: 100 });
 
       React.useEffect(() => {
         let alive = true;
         let timer;
+        // The audit is read separately: it has its own filter, and the summary must stay small.
+        const loadLog = async () => {
+          const query = new URLSearchParams({ limit: String(filter.limit) });
+          if (filter.session) query.set('session', filter.session);
+          if (filter.tab) query.set('tab', String(filter.tab));
+          try {
+            const response = await fetch(`/nanobrowser/audit?${query}`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json();
+            if (alive) setLog({ rows: payload.rows ?? [], error: null });
+          } catch (error) {
+            if (alive) setLog(previous => ({ ...previous, error: String(error?.message ?? error) }));
+          }
+        };
         const load = async () => {
           try {
             const response = await fetch('/nanobrowser/summary', { cache: 'no-store' });
@@ -272,6 +359,7 @@ window.__ModuleLoader__.load({
               }));
             }
           }
+          await loadLog();
         };
         void load();
         timer = setInterval(load, 3000);
@@ -279,12 +367,25 @@ window.__ModuleLoader__.load({
           alive = false;
           clearInterval(timer);
         };
-      }, [tick]);
+      }, [tick, filter]);
 
       const data = state.data;
       const hub = data?.hub;
+      // How long ago the extension last polled: what makes "disconnected" say how bad it is, and "connected" say it
+      // is live rather than merely true once.
+      const linkAge = hub?.lastPollAt ? Math.max(0, Math.round((Date.now() - hub.lastPollAt) / 1000)) : null;
       const leases = hub?.leases ?? [];
       const leaseFor = id => leases.find(lease => lease.clientId === id);
+      // The filters offer what the page can know: the live sessions and leases, plus whatever the audit itself mentions.
+      const sessionIds = [
+        ...new Set([...(data?.sessions ?? []).map(session => session.id), ...log.rows.map(row => row.sessionId)]),
+      ].filter(Boolean);
+      const tabIds = [
+        ...new Set([
+          ...(hub?.leases ?? []).map(lease => lease.tabId ?? lease.tabs?.[0]),
+          ...log.rows.map(row => row.tabId),
+        ]),
+      ].filter(tab => tab !== undefined && tab !== null);
 
       /** Runs the skill on the session that holds a lease; its write steps still ask in the Chrome drawer. */
       const runSkillNow = async skill => {
@@ -293,7 +394,11 @@ window.__ModuleLoader__.load({
           const response = await fetch('/nanobrowser/skill/run', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ name: skill.name, params: paramValues[skill.name] ?? {} }),
+            body: JSON.stringify({
+              name: skill.name,
+              params: paramValues[skill.name] ?? {},
+              dryRun: dryRuns[skill.name] === true,
+            }),
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok || payload.ok === false) {
@@ -310,6 +415,47 @@ window.__ModuleLoader__.load({
           setTick(value => value + 1);
         } catch (error) {
           setRunState({ name: skill.name, busy: false, error: String(error?.message ?? error), steps: [] });
+        }
+      };
+
+      /** Downloads the filtered audit as CSV. The page fetches it, so the same guard applies as to every other read. */
+      const exportLog = async () => {
+        const query = new URLSearchParams({ format: 'csv', limit: String(filter.limit) });
+        if (filter.session) query.set('session', filter.session);
+        if (filter.tab) query.set('tab', String(filter.tab));
+        try {
+          const response = await fetch(`/nanobrowser/audit?${query}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const text = await response.text();
+          const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'nanobrowser-audit.csv';
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+          setLog(previous => ({ ...previous, error: String(error?.message ?? error) }));
+        }
+      };
+
+      /** Opens one skill's files: its SKILL.md, its recipe, and what it learned. Read-only; editing is a file job. */
+      const toggleFiles = async skill => {
+        if (openFiles === skill.name) {
+          setOpenFiles(null);
+          return;
+        }
+        setOpenFiles(skill.name);
+        if (files?.name === skill.name && files.data) return;
+        setFiles({ name: skill.name, busy: true, data: null, error: null });
+        try {
+          const response = await fetch(`/nanobrowser/skill?name=${encodeURIComponent(skill.name)}`, {
+            cache: 'no-store',
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.ok === false) throw new Error(payload.error ?? `HTTP ${response.status}`);
+          setFiles({ name: skill.name, busy: false, data: payload, error: null });
+        } catch (error) {
+          setFiles({ name: skill.name, busy: false, data: null, error: String(error?.message ?? error) });
         }
       };
 
@@ -332,6 +478,16 @@ window.__ModuleLoader__.load({
           ),
         ),
         state.error ? h('p', { style: styles.error }, `${t('offline')} ${state.error}`) : null,
+        data
+          ? h(
+              'p',
+              { style: styles.link },
+              h('span', { style: styles.dot(hub?.connected === true) }),
+              hub?.connected
+                ? `${t('connected')}${linkAge === null ? '' : ` · ${t('age', { n: linkAge })}`}`
+                : `${t('disconnected')}${linkAge === null ? '' : ` · ${t('lastSeen', { n: linkAge })}`}`,
+            )
+          : null,
         data
           ? h(
               'div',
@@ -392,8 +548,18 @@ window.__ModuleLoader__.load({
                             h(
                               'div',
                               { style: styles.rowMeta },
-                              `${t('steps', { n: skill.steps })}${skill.origin ? ` · ${skill.origin}` : ''}`,
+                              `${t('steps', { n: skill.steps })}${skill.origin ? ` · ${skill.origin}` : ''}` +
+                                (skill.learned ? ` · ${t('learned', { n: skill.learned })}` : ''),
                             ),
+                          ),
+                          h(
+                            'button',
+                            {
+                              type: 'button',
+                              style: styles.smallButton,
+                              onClick: () => void toggleFiles(skill),
+                            },
+                            t('files'),
                           ),
                           h(
                             'button',
@@ -406,6 +572,43 @@ window.__ModuleLoader__.load({
                           ),
                         ),
                         skill.description ? h('div', { style: styles.rowDescription }, skill.description) : null,
+                        openFiles === skill.name
+                          ? h(
+                              'div',
+                              { style: styles.detail },
+                              files?.busy
+                                ? h('p', { style: styles.muted }, t('loading'))
+                                : files?.error
+                                  ? h('p', { style: styles.error }, `${t('detailFailed')}: ${files.error}`)
+                                  : files?.data
+                                    ? h(
+                                        'div',
+                                        { style: styles.detail },
+                                        h('div', { style: styles.folder }, `${t('folder')}: ${files.data.dir}`),
+                                        files.data.learned?.length
+                                          ? h(
+                                              'div',
+                                              null,
+                                              h(
+                                                'div',
+                                                { style: styles.rowMeta },
+                                                t('learned', { n: files.data.learned.length }),
+                                              ),
+                                              files.data.learned.map((note, index) =>
+                                                h('div', { key: index, style: styles.runLine }, note),
+                                              ),
+                                            )
+                                          : null,
+                                        h('pre', { style: styles.pre }, files.data.content ?? ''),
+                                        h(
+                                          'pre',
+                                          { style: styles.pre },
+                                          JSON.stringify(files.data.recipe ?? {}, null, 2),
+                                        ),
+                                      )
+                                    : null,
+                            )
+                          : null,
                         open
                           ? h(
                               'div',
@@ -427,6 +630,19 @@ window.__ModuleLoader__.load({
                                     },
                                   }),
                                 ),
+                              ),
+                              h(
+                                'label',
+                                { style: styles.check },
+                                h('input', {
+                                  type: 'checkbox',
+                                  checked: dryRuns[skill.name] === true,
+                                  onChange: event => {
+                                    const checked = event.target.checked;
+                                    setDryRuns(previous => ({ ...previous, [skill.name]: checked }));
+                                  },
+                                }),
+                                h('span', { style: styles.fieldLabel }, t('dryRun')),
                               ),
                               h(
                                 'button',
@@ -474,19 +690,87 @@ window.__ModuleLoader__.load({
                   : h('p', { style: styles.muted }, t('noSkills')),
               ),
               card(
-                t('recent'),
-                data.recent.length
-                  ? data.recent
+                t('audit'),
+                h(
+                  'div',
+                  { style: styles.filters },
+                  h(
+                    'label',
+                    { style: styles.filterField },
+                    h('span', { style: styles.fieldLabel }, t('filterSession')),
+                    h(
+                      'select',
+                      {
+                        style: styles.select,
+                        value: filter.session,
+                        onChange: event => {
+                          const session = event.target.value;
+                          setFilter(previous => ({ ...previous, session }));
+                        },
+                      },
+                      h('option', { value: '' }, t('allSessions')),
+                      sessionIds.map(id => h('option', { key: id, value: id }, id.slice(0, 8))),
+                    ),
+                  ),
+                  h(
+                    'label',
+                    { style: styles.filterField },
+                    h('span', { style: styles.fieldLabel }, t('filterTab')),
+                    h(
+                      'select',
+                      {
+                        style: styles.select,
+                        value: String(filter.tab),
+                        onChange: event => {
+                          const tab = event.target.value;
+                          setFilter(previous => ({ ...previous, tab }));
+                        },
+                      },
+                      h('option', { value: '' }, t('allTabs')),
+                      tabIds.map(tab => h('option', { key: tab, value: String(tab) }, String(tab))),
+                    ),
+                  ),
+                  h(
+                    'label',
+                    { style: styles.filterField },
+                    h('span', { style: styles.fieldLabel }, t('filterLimit')),
+                    h(
+                      'select',
+                      {
+                        style: styles.select,
+                        value: String(filter.limit),
+                        onChange: event => {
+                          const limit = Number(event.target.value) || 100;
+                          setFilter(previous => ({ ...previous, limit }));
+                        },
+                      },
+                      [50, 100].map(limit => h('option', { key: limit, value: String(limit) }, String(limit))),
+                    ),
+                  ),
+                  h(
+                    'button',
+                    { type: 'button', style: styles.smallButton, onClick: () => void exportLog() },
+                    t('export'),
+                  ),
+                ),
+                log.error ? h('p', { style: styles.error }, log.error) : null,
+                log.rows.length
+                  ? log.rows
                       .slice()
                       .reverse()
-                      .map((row, index) => {
+                      .map(row => {
                         const target = targetLabel(row.args);
                         return h(
                           'div',
-                          { key: index },
+                          { key: row.callId },
                           h(
                             'div',
                             { style: styles.recentRow },
+                            h(
+                              'span',
+                              { style: styles.recentTime, title: new Date(row.at).toLocaleString() },
+                              new Date(row.at).toLocaleTimeString(),
+                            ),
                             h('span', { 'aria-hidden': true }, row.ok === false ? '✗' : row.ok === true ? '✓' : '…'),
                             h('span', { style: styles.recentTool }, row.tool || ''),
                             target ? h('span', { style: styles.recentTarget }, target) : null,
@@ -494,12 +778,14 @@ window.__ModuleLoader__.load({
                               ? h('span', { style: styles.recentMeta }, t('tabShort', { tab: row.tabId }))
                               : null,
                             typeof row.ms === 'number' ? h('span', { style: styles.recentMeta }, `${row.ms} ms`) : null,
-                            h('span', { style: styles.recentTime }, new Date(row.at).toLocaleTimeString()),
+                            row.sessionId
+                              ? h('span', { style: styles.recentMeta, title: row.sessionId }, row.sessionId.slice(0, 8))
+                              : null,
                           ),
                           row.ok === false && row.text ? h('div', { style: styles.recentError }, row.text) : null,
                         );
                       })
-                  : h('p', { style: styles.muted }, t('noRecent')),
+                  : h('p', { style: styles.muted }, t('auditEmpty')),
               ),
             )
           : h('p', { style: styles.muted }, t('loading')),
