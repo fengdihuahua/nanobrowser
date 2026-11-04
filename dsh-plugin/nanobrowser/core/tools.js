@@ -190,7 +190,7 @@ export const TOOLS = [
   {
     name: 'tabs',
     description:
-      "List, open, select or close the session's tabs. Opens in the same Chrome profile, so it keeps the user's login state.",
+      "List, open, select or close the session's own tabs. Opens in the same Chrome profile, so it keeps the user's login state. These are the tabs this session holds: to take a tab from somewhere else, call attach.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -277,6 +277,23 @@ export const ACTION_TOOLS = new Set([
 ]);
 
 export const TOOL_NAMES = new Set(TOOLS.map(tool => tool.name));
+
+/**
+ * Whether this command needs its caller to own a tab. It is exactly the layer's action tools, plus the `tabs`
+ * commands that move or close a tab: observation (`snapshot`, `read`, `find`, `screenshot`, `console`, `network`)
+ * stays free, so a message can carry the page it was sent from and a client can diagnose before it takes a tab. A ref
+ * seen from a tab it does not own still cannot be acted on. `say`, `reload-extension`, `attach`, `tabs-all` and
+ * `cancel` never act on a leased tab; opening a tab creates one nobody owns yet.
+ *
+ * The Hub, the plugin's tool guard and a skill run all ask here, so the two front ends cannot drift apart.
+ */
+export function needsLease(tool, args = {}) {
+  if (tool === 'tabs') {
+    const action = String(args?.action ?? '');
+    return action !== 'list' && action !== 'open';
+  }
+  return ACTION_TOOLS.has(String(tool ?? ''));
+}
 
 export function toolByName(name) {
   return TOOLS.find(tool => tool.name === name);

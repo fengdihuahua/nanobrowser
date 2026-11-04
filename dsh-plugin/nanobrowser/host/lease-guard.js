@@ -1,7 +1,8 @@
 // A browser action is refused until its session owns a tab. The guard is synchronous and applies to every agent;
 // reads/list/status/attach stay available so a session can discover and take a tab, and panel notes/audit are safe.
+// Which tools need a tab is decided once, in `core/tools.js`, so the guard and the Hub cannot disagree.
 
-const LEASE_FREE = new Set(['status', 'attach', 'detach', 'say', 'reload-extension', 'audit']);
+import { needsLease } from '../core/tools.js';
 
 /** The extension-side name of a `nanobrowser_*` tool, or undefined for a tool this plugin did not register. */
 export function browserToolName(name) {
@@ -11,10 +12,7 @@ export function browserToolName(name) {
 
 export function requiresLease(name, args = {}) {
   const raw = browserToolName(name);
-  if (raw === undefined) return false;
-  // Listing tabs is discovery; opening, selecting or closing one changes the browser and needs a lease.
-  if (raw === 'tabs') return String(args?.action ?? '') !== 'list';
-  return !LEASE_FREE.has(raw);
+  return raw === undefined ? false : needsLease(raw, args);
 }
 
 export function registerLeaseGuard(ctx, hub) {
@@ -22,7 +20,7 @@ export function registerLeaseGuard(ctx, hub) {
     if (!requiresLease(execution.name, execution.arguments)) return undefined;
     const clientId = execution.agent?.id;
     if (!clientId) return 'No live session is attached to a browser tab.';
-    if (!hub.leaseOf(String(clientId))) {
+    if (hub.ownedTabId(String(clientId)) === null) {
       return 'Attach this session to a tab first with nanobrowser_attach.';
     }
     return undefined;
